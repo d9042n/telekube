@@ -1,0 +1,137 @@
+common:
+  confirm: "✅ Xác nhận"
+  cancel: "❌ Hủy"
+  refresh: "🔄 Làm mới"
+  back: "◀️ Quay lại"
+  loading: "⏳ Đang tải..."
+  denied: "⛔ Bạn không có quyền thực hiện hành động này!"
+  not_found: "❌ Không tìm thấy tài nguyên."
+  error: "❌ Đã xảy ra lỗi: %s"
+  success: "✅ Hoàn tất!"
+  select_cluster: "🖥️ Chọn Cluster:"
+  no_clusters: "❌ Chưa cấu hình cluster nào."
+  unknown: "Không xác định"
+
+pods:
+  list:
+    title: "📦 Pods trong %s (cluster: %s)"
+    select_namespace: "Chọn namespace:"
+    empty: "Không có pod nào trong namespace này."
+  detail:
+    status: "Trạng thái"
+    node: "Node"
+    restarts: "Khởi động lại"
+    age: "Tuổi"
+  restart:
+    confirm: "⚠️ Xác nhận khởi động lại pod `%s` trong namespace `%s`?"
+    success: "✅ Pod `%s` đã bị xóa (sẽ được tạo lại bởi controller)"
+    failed: "❌ Không thể khởi động lại pod: %s"
+  logs:
+    title: "📋 Logs — %s"
+    empty: "Không có log gần đây."
+
+nodes:
+  list:
+    title: "🖥️ Nodes — cluster: %s"
+    empty: "Không tìm thấy node."
+  detail:
+    title: "🖥️ Node: %s"
+    status: "Trạng thái"
+    roles: "Vai trò"
+    version: "Phiên bản"
+    cpu: "CPU"
+    memory: "Bộ nhớ"
+    pods: "Pods"
+  cordon:
+    confirm: "⚠️ Xác nhận cordon node `%s`? Pods sẽ không được lên lịch ở đây."
+    success: "✅ Node `%s` đã được cordon thành công."
+    failed: "❌ Không thể cordon node: %s"
+  drain:
+    confirm: "⚠️ Xác nhận drain node `%s`? Các pod đang chạy sẽ bị đuổi."
+    success: "✅ Đã bắt đầu drain node `%s`."
+    failed: "❌ Không thể drain node: %s"
+
+namespaces:
+  list:
+    title: "🗂️ Namespaces — cluster: %s"
+    empty: "Không tìm thấy namespace."
+
+deployments:
+  list:
+    title: "🚀 Deployments trong %s (cluster: %s)"
+    empty: "Không tìm thấy deployment."
+  scale:
+    confirm: "⚠️ Scale `%s` lên %d replicas?"
+    success: "✅ Deployment `%s` đã được scale lên %d replicas."
+    failed: "❌ Không thể scale deployment: %s"
+
+events:
+  title: "🔔 Events — %s (namespace: %s)"
+  empty: "Không có event gần đây."
+
+audit:
+  title: "📜 Các hành động gần đây (24h qua)"
+  empty: "Không có hành động nào gần đây."
+  entry: "%s %s @%s — %s %s (%s) %s"
+
+rbac:
+  role_set: "✅ Đã đặt role của @%s thành `%s`."
+  role_get: "👤 @%s có role `%s`."
+  denied: "⛔ Không đủ quyền. Yêu cầu role: `%s`."
+
+argocd:
+  apps:
+    title: "🔀 Ứng dụng ArgoCD (instance: %s)"
+    empty: "Không tìm thấy ứng dụng nào."
+  sync:
+    confirm: "⚠️ Force sync ứng dụng `%s`?"
+    success: "✅ Đã kích hoạt sync cho ứng dụng `%s`."
+    failed: "❌ Sync thất bại: %s"
+  rollback:
+    confirm: "⚠️ Rollback khẩn cấp `%s` về revision %d?"
+    success: "✅ Đã kích hoạt rollback cho `%s`."
+    failed: "❌ Rollback thất bại: %s"
+
+helm:
+  list:
+    title: "⛵ Helm Releases trong %s (cluster: %s)"
+    empty: "Không tìm thấy Helm release."
+  rollback:
+    confirm: "⚠️ Rollback `%s` về revision %d?"
+    success: "✅ Helm release `%s` đã được rollback về revision %d."
+    failed: "❌ Rollback thất bại: %s"
+
+approval:
+  pending: "⏳ Hành động này cần được phê duyệt."
+  approved: "✅ Hành động đã được phê duyệt bởi @%s."
+  rejected: "❌ Hành động đã bị từ chối bởi @%s."
+  expired: "⏰ Yêu cầu phê duyệt đã hết hạn."
+
+watcher:
+  alert_muted: "🔇 Cảnh báo đã được tắt trong 1 giờ."
+  pod:
+    oom_killed: "Container vượt quá giới hạn bộ nhớ"
+    crash_loop: "Container bị crash liên tục (số lần restart: %d)"
+    image_pull: "Không thể pull image: %s"
+    pending: "Pod bị kẹt ở trạng thái Pending trong %s"
+    evicted: "Pod bị đuổi: %s"
+  node:
+    not_ready: "Node không sẵn sàng"
+    unreachable: "Node không thể truy cập"
+    disk_pressure: "Node đang có áp lực đĩa"
+    memory_pressure: "Node đang có áp lực bộ nhớ"
+  cronjob:
+    failed: "Thực thi CronJob thất bại"
+    suspended: "CronJob đã bị tạm dừng"
+  cert:
+    expiring_warning: "⚠️ Hết hạn sau %s ngày (%s)"
+    expiring_critical: "🔴 KHẨN CẤP: Hết hạn sau %s ngày! (%s)"
+  pvc:
+    high_usage: "⚠️ Dung lượng disk vượt ngưỡng %d%%!"
+    critical_usage: "🔴 KHẨN CẤP: Đĩa ở %d%%!"
+
+freeze:
+  active: "🥶 Deployment đang bị đóng băng đến %s."
+  reason: "Lý do: %s"
+  set: "✅ Đã đặt deployment freeze đến %s."
+  lifted: "✅ Đã gỡ bỏ deployment freeze."

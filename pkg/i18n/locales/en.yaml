@@ -1,0 +1,137 @@
+common:
+  confirm: "✅ Confirm"
+  cancel: "❌ Cancel"
+  refresh: "🔄 Refresh"
+  back: "◀️ Back"
+  loading: "⏳ Loading..."
+  denied: "⛔ You don't have permission for this action!"
+  not_found: "❌ Resource not found."
+  error: "❌ An error occurred: %s"
+  success: "✅ Done!"
+  select_cluster: "🖥️ Select Cluster:"
+  no_clusters: "❌ No clusters configured."
+  unknown: "Unknown"
+
+pods:
+  list:
+    title: "📦 Pods in %s (cluster: %s)"
+    select_namespace: "Select namespace:"
+    empty: "No pods found in this namespace."
+  detail:
+    status: "Status"
+    node: "Node"
+    restarts: "Restarts"
+    age: "Age"
+  restart:
+    confirm: "⚠️ Confirm restart pod `%s` in namespace `%s`?"
+    success: "✅ Pod `%s` deleted (will be recreated by controller)"
+    failed: "❌ Failed to restart pod: %s"
+  logs:
+    title: "📋 Logs — %s"
+    empty: "No recent logs."
+
+nodes:
+  list:
+    title: "🖥️ Nodes — cluster: %s"
+    empty: "No nodes found."
+  detail:
+    title: "🖥️ Node: %s"
+    status: "Status"
+    roles: "Roles"
+    version: "Version"
+    cpu: "CPU"
+    memory: "Memory"
+    pods: "Pods"
+  cordon:
+    confirm: "⚠️ Confirm cordon node `%s`? Pods will not be scheduled here."
+    success: "✅ Node `%s` cordoned successfully."
+    failed: "❌ Failed to cordon node: %s"
+  drain:
+    confirm: "⚠️ Confirm drain node `%s`? Running pods will be evicted."
+    success: "✅ Node `%s` drain initiated."
+    failed: "❌ Failed to drain node: %s"
+
+namespaces:
+  list:
+    title: "🗂️ Namespaces — cluster: %s"
+    empty: "No namespaces found."
+
+deployments:
+  list:
+    title: "🚀 Deployments in %s (cluster: %s)"
+    empty: "No deployments found."
+  scale:
+    confirm: "⚠️ Scale `%s` to %d replicas?"
+    success: "✅ Deployment `%s` scaled to %d replicas."
+    failed: "❌ Failed to scale deployment: %s"
+
+events:
+  title: "🔔 Events — %s (namespace: %s)"
+  empty: "No recent events."
+
+audit:
+  title: "📜 Recent Actions (last 24h)"
+  empty: "No recent actions found."
+  entry: "%s %s @%s — %s %s (%s) %s"
+
+rbac:
+  role_set: "✅ User @%s role set to `%s`."
+  role_get: "👤 User @%s has role `%s`."
+  denied: "⛔ Insufficient permissions. Required role: `%s`."
+
+argocd:
+  apps:
+    title: "🔀 ArgoCD Applications (instance: %s)"
+    empty: "No applications found."
+  sync:
+    confirm: "⚠️ Force sync application `%s`?"
+    success: "✅ Application `%s` sync triggered."
+    failed: "❌ Sync failed: %s"
+  rollback:
+    confirm: "⚠️ Emergency rollback `%s` to revision %d?"
+    success: "✅ Rollback triggered for `%s`."
+    failed: "❌ Rollback failed: %s"
+
+helm:
+  list:
+    title: "⛵ Helm Releases in %s (cluster: %s)"
+    empty: "No Helm releases found."
+  rollback:
+    confirm: "⚠️ Rollback `%s` to revision %d?"
+    success: "✅ Helm release `%s` rolled back to revision %d."
+    failed: "❌ Rollback failed: %s"
+
+approval:
+  pending: "⏳ Approval required for this action."
+  approved: "✅ Action approved by @%s."
+  rejected: "❌ Action rejected by @%s."
+  expired: "⏰ Approval request expired."
+
+watcher:
+  alert_muted: "🔇 Alert muted for 1 hour."
+  pod:
+    oom_killed: "Container exceeded memory limit"
+    crash_loop: "Container crashing repeatedly (restarts: %d)"
+    image_pull: "Cannot pull image: %s"
+    pending: "Pod stuck in Pending for %s"
+    evicted: "Pod evicted: %s"
+  node:
+    not_ready: "Node is not ready"
+    unreachable: "Node is unreachable"
+    disk_pressure: "Node has disk pressure"
+    memory_pressure: "Node has memory pressure"
+  cronjob:
+    failed: "CronJob execution failed"
+    suspended: "CronJob has been suspended"
+  cert:
+    expiring_warning: "⚠️ Expires in %s days (%s)"
+    expiring_critical: "🔴 CRITICAL: Expires in %s days! (%s)"
+  pvc:
+    high_usage: "⚠️ Disk usage exceeds %d%% threshold!"
+    critical_usage: "🔴 CRITICAL: Disk at %d%%!"
+
+freeze:
+  active: "🥶 Deployment freeze is active until %s."
+  reason: "Reason: %s"
+  set: "✅ Deployment freeze set until %s."
+  lifted: "✅ Deployment freeze lifted."

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: telekube
+description: Telegram ChatOps Bot for Kubernetes & ArgoCD
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: leanhdoan

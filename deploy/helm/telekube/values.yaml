@@ -1,0 +1,62 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/leanhdoan/telekube
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+config:
+  telegram:
+    # token: set via secret
+    adminIDs: []
+    rateLimit: 30
+  storage:
+    backend: sqlite
+    sqlite:
+      path: /data/telekube.db
+  modules:
+    kubernetes:
+      enabled: true
+    argocd:
+      enabled: false
+  log:
+    level: info
+    format: json
+  server:
+    port: 8080
+  rbac:
+    defaultRole: viewer
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+rbac:
+  create: true
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: ""
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

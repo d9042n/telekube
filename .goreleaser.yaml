@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: telekube
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: telekube
+    main: ./cmd/telekube
+    binary: telekube
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/d9042n/telekube/pkg/version.Version={{.Version}}
+      - -X github.com/d9042n/telekube/pkg/version.Commit={{.Commit}}
+      - -X github.com/d9042n/telekube/pkg/version.Date={{.Date}}
+
+archives:
+  - id: default
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}amd64
+      {{- else if eq .Arch "arm64" }}arm64
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+      - configs/config.example.yaml
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  use: github
+  groups:
+    - title: 'New Features'
+      regexp: "^.*feat[(\\w)]*!?:+.*$"
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: "^.*fix[(\\w)]*!?:+.*$"
+      order: 1
+    - title: 'Documentation'
+      regexp: "^.*docs[(\\w)]*!?:+.*$"
+      order: 2
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - '^chore:'
+      - '^ci:'
+      - '^test:'
+
+release:
+  github:
+    owner: d9042n
+    name: telekube
+  name_template: "{{.ProjectName}} {{.Version}}"
+  footer: |
+    ## Docker
+
+    ```bash
+    docker pull ghcr.io/d9042n/telekube:{{.Version}}
+    ```
+
+    ## Helm
+
+    ```bash
+    helm install telekube oci://ghcr.io/d9042n/charts/telekube --version {{.Version | trimPrefix "v"}}
+    ```
+
+sboms:
+  - artifacts: archive

@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "telekube.fullname" . }}
+  labels:
+    {{- include "telekube.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    telegram:
+      admin_ids:
+        {{- range .Values.config.telegram.adminIDs }}
+        - {{ . }}
+        {{- end }}
+      rate_limit: {{ .Values.config.telegram.rateLimit }}
+    storage:
+      backend: {{ .Values.config.storage.backend }}
+      sqlite:
+        path: {{ .Values.config.storage.sqlite.path }}
+    modules:
+      kubernetes:
+        enabled: {{ .Values.config.modules.kubernetes.enabled }}
+      argocd:
+        enabled: {{ .Values.config.modules.argocd.enabled }}
+    log:
+      level: {{ .Values.config.log.level }}
+      format: {{ .Values.config.log.format }}
+    server:
+      port: {{ .Values.config.server.port }}
+    rbac:
+      default_role: {{ .Values.config.rbac.defaultRole }}

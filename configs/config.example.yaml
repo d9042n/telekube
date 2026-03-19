@@ -1,0 +1,193 @@
+# Telekube Configuration Example
+# Copy to config.yaml and edit as needed.
+# All values can be overridden by environment variables with TELEKUBE_ prefix.
+# Example: telegram.token -> TELEKUBE_TELEGRAM_TOKEN
+
+telegram:
+  # Bot token from @BotFather (required)
+  # Env: TELEKUBE_TELEGRAM_TOKEN
+  token: ""
+
+  # Telegram user IDs that always have admin role (required, at least 1)
+  # Env: TELEKUBE_TELEGRAM_ADMIN_IDS (comma-separated)
+  admin_ids: []
+
+  # Webhook URL (optional). If empty, uses long polling.
+  # webhook_url: "https://your-domain.com/webhook"
+
+  # Allowed chat IDs (optional). If empty, allows all chats.
+  # These chats will also receive watcher alerts and briefings.
+  # allowed_chats: [123456789]
+
+  # Rate limit: max messages per minute per user
+  rate_limit: 30
+
+# Kubernetes clusters to manage
+clusters:
+  - name: "default"
+    display_name: "Default Cluster"
+    # Path to kubeconfig file. Empty = use default (~/.kube/config)
+    kubeconfig: ""
+    # Kubeconfig context to use. Empty = current context
+    context: ""
+    # Use in-cluster config (when running inside K8s)
+    in_cluster: false
+    # Set as default cluster
+    default: true
+
+# ArgoCD instances (Phase 3)
+argocd:
+  # TLS verification — set to true only for development/testing
+  insecure: false
+  # Timeout for ArgoCD API calls (default 30s)
+  timeout: 30s
+  instances:
+    # - name: "prod-argocd"
+    #   url: "https://argocd.example.com"
+    #   auth:
+    #     type: "token"  # or "oauth"
+    #     token: "${ARGOCD_TOKEN}"
+    #   # Associate with Kubernetes clusters by name
+    #   clusters:
+    #     - "prod-1"
+    #     - "prod-2"
+    # - name: "staging-argocd"
+    #   url: "https://argocd-staging.example.com"
+    #   auth:
+    #     type: "token"
+    #     token: "${ARGOCD_STAGING_TOKEN}"
+    #   clusters:
+    #     - "staging"
+
+# Storage backend
+storage:
+  # Backend type: sqlite or postgres
+  backend: sqlite
+
+  sqlite:
+    # SQLite database file path
+    path: "telekube.db"
+
+  # PostgreSQL (for production)
+  # postgres:
+  #   dsn: "postgres://user:pass@localhost:5432/telekube?sslmode=disable"
+  #   max_open_conns: 50
+  #   max_idle_conns: 25
+  #   conn_max_lifetime_min: 30
+
+  # Redis (optional — enables caching, rate limiting)
+  # redis:
+  #   addr: "localhost:6379"
+  #   username: ""
+  #   password: ""
+  #   db: 0
+  #   tls_enable: false
+  #   pool_size: 20
+  #   op_timeout_ms: 2000
+
+# Module toggles
+modules:
+  kubernetes:
+    enabled: true
+  argocd:
+    enabled: false
+  watcher:
+    # Real-time pod/node monitoring with Telegram alerts
+    enabled: false
+  approval:
+    enabled: false
+  briefing:
+    # Scheduled daily cluster health reports
+    enabled: false
+    schedule: "0 8 * * *"       # 8:00 AM daily (cron format: MIN HOUR * * *)
+    timezone: "Asia/Ho_Chi_Minh"
+  alertmanager:
+    enabled: false
+  helm:
+    enabled: false
+  incident:
+    enabled: false
+  notify:
+    # Per-user notification preferences (/notify command)
+    enabled: false
+
+# HTTP server (health/metrics)
+server:
+  port: 8080
+  read_timeout_ms: 15000
+  write_timeout_ms: 15000
+  idle_timeout_ms: 60000
+
+# Logging
+log:
+  # Level: debug, info, warn, error
+  level: info
+  # Format: json (production), console (development)
+  format: console
+
+# RBAC
+rbac:
+  # Default role for new users: viewer, operator, admin, super-admin, on-call
+  default_role: viewer
+
+# Leader Election (for HA with multiple replicas)
+# leader_election:
+#   enabled: false
+#   namespace: "telekube"   # K8s namespace where the Lease resource is created
+
+# Approval Workflow
+# Requires explicit admin approval before executing dangerous operations
+approval:
+  enabled: false
+  default_expiry: "30m"     # How long an approval request stays valid
+  rules:
+    # ArgoCD sync requires 1 admin approval on production clusters
+    - action: "argocd.apps.sync"
+      clusters: ["*"]       # Apply to all clusters, or specify ["prod-1", "prod-2"]
+      required_approvals: 1
+      approver_roles: ["admin", "super-admin"]
+
+    # ArgoCD rollback requires 1 admin approval
+    - action: "argocd.apps.rollback"
+      clusters: ["*"]
+      required_approvals: 1
+      approver_roles: ["admin", "super-admin"]
+
+    # K8s scale requires approval
+    - action: "kubernetes.deployments.scale"
+      clusters: ["*"]
+      required_approvals: 1
+      approver_roles: ["admin", "super-admin", "on-call"]
+
+    # Node drain requires approval
+    - action: "kubernetes.nodes.drain"
+      clusters: ["*"]
+      required_approvals: 1
+      approver_roles: ["admin", "super-admin"]
+
+# Watcher configuration
+# watcher:
+#   custom_rules:
+#     # Alert when container restarts exceed threshold
+#     - name: "high-restarts"
+#       description: "Container restart count too high"
+#       severity: "warning"
+#       condition:
+#         type: "pod_restart_count"   # pod_restart_count | pod_pending_duration | namespace_quota_percentage | deployment_unavailable
+#         threshold: 5
+#       scope:
+#         clusters: ["*"]
+#         namespaces: ["production", "staging"]
+#       notify:
+#         chats: []                   # Empty = use allowed_chats
+#         mention: []
+#
+#     # Alert when deployments have zero available replicas
+#     - name: "deployment-down"
+#       description: "Deployment has no available replicas"
+#       severity: "critical"
+#       condition:
+#         type: "deployment_unavailable"
+#       scope:
+#         clusters: ["*"]
+#         namespaces: ["production"]
