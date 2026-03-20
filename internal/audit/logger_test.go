@@ -150,7 +150,7 @@ func TestLogger_Query(t *testing.T) {
 	}
 
 	logger := NewLogger(repo, zap.NewNop())
-	defer logger.Close()
+	defer func() { _ = logger.Close() }()
 
 	entries, total, err := logger.Query(context.Background(), storage.AuditFilter{
 		Page:     1,
@@ -172,7 +172,7 @@ func TestLogger_Query_WithFilter(t *testing.T) {
 	}
 
 	logger := NewLogger(repo, zap.NewNop())
-	defer logger.Close()
+	defer func() { _ = logger.Close() }()
 
 	userID := int64(100)
 	entries, total, err := logger.Query(context.Background(), storage.AuditFilter{

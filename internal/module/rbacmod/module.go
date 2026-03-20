@@ -150,7 +150,7 @@ func (m *Module) handleListUsers(c telebot.Context) error {
 			username = fmt.Sprintf("ID:%d", u.TelegramID)
 		}
 
-		sb.WriteString(fmt.Sprintf("• @%s — `%s`%s\n", username, role, superTag))
+		fmt.Fprintf(&sb, "• @%s — `%s`%s\n", username, role, superTag)
 	}
 
 	// User detail buttons (up to 8 to stay within Telegram limits)
@@ -199,9 +199,9 @@ func (m *Module) handleUserDetail(c telebot.Context) error {
 	bindings, _ := m.rbac.ListUserBindings(ctx, userID)
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("👤 *User %d*\n", userID))
+	fmt.Fprintf(&sb, "👤 *User %d*\n", userID)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-	sb.WriteString(fmt.Sprintf("Legacy role: `%s`\n", flatRole))
+	fmt.Fprintf(&sb, "Legacy role: `%s`\n", flatRole)
 
 	if m.rbac.IsSuperAdmin(userID) {
 		sb.WriteString("Status: 👑 Super Admin (config)\n")
@@ -218,7 +218,7 @@ func (m *Module) handleUserDetail(c telebot.Context) error {
 					expiry = fmt.Sprintf("expires %s", b.ExpiresAt.Format("Jan 02 15:04 UTC"))
 				}
 			}
-			sb.WriteString(fmt.Sprintf("  • `%s` (%s)\n", b.RoleName, expiry))
+			fmt.Fprintf(&sb, "  • `%s` (%s)\n", b.RoleName, expiry)
 		}
 	} else {
 		sb.WriteString("\nNo dynamic role bindings.\n")
@@ -248,7 +248,7 @@ func (m *Module) handleListRoles(c telebot.Context) error {
 
 	sb.WriteString("*Built-in:*\n")
 	for _, r := range builtinRoles {
-		sb.WriteString(fmt.Sprintf("  • `%s` — %s\n", r.Name, r.Description))
+		fmt.Fprintf(&sb, "  • `%s` — %s\n", r.Name, r.Description)
 	}
 
 	if len(customRoles) > 0 {
@@ -258,7 +258,7 @@ func (m *Module) handleListRoles(c telebot.Context) error {
 				continue
 			}
 			ruleCount := len(r.Rules)
-			sb.WriteString(fmt.Sprintf("  • `%s` — %s (%d rules)\n", r.Name, r.Description, ruleCount))
+			fmt.Fprintf(&sb, "  • `%s` — %s (%d rules)\n", r.Name, r.Description, ruleCount)
 		}
 	}
 
@@ -330,7 +330,7 @@ func (m *Module) handleAssignSelectUser(c telebot.Context) error {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("➕ *Assign Role to User %d*\n", userID))
+	fmt.Fprintf(&sb, "➕ *Assign Role to User %d*\n", userID)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 	sb.WriteString("Select a role:")
 
@@ -402,9 +402,9 @@ func (m *Module) handleAssignConfirm(c telebot.Context) error {
 	var sb strings.Builder
 	sb.WriteString("✅ *Role Assigned*\n")
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-	sb.WriteString(fmt.Sprintf("User: `%d`\n", userID))
-	sb.WriteString(fmt.Sprintf("Role: `%s`\n", roleName))
-	sb.WriteString(fmt.Sprintf("Assigned by: @%s\n", c.Sender().Username))
+	fmt.Fprintf(&sb, "User: `%d`\n", userID)
+	fmt.Fprintf(&sb, "Role: `%s`\n", roleName)
+	fmt.Fprintf(&sb, "Assigned by: @%s\n", c.Sender().Username)
 
 	menu := &telebot.ReplyMarkup{}
 	btnBack := menu.Data("⬅ Back to RBAC", "rbac_back")
@@ -477,9 +477,9 @@ func (m *Module) handleRevokeSelectUser(c telebot.Context) error {
 	flatRole, _ := m.rbac.GetRole(ctx, userID)
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("➖ *Revoke Role from User %d*\n", userID))
+	fmt.Fprintf(&sb, "➖ *Revoke Role from User %d*\n", userID)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-	sb.WriteString(fmt.Sprintf("Current role: `%s`\n", flatRole))
+	fmt.Fprintf(&sb, "Current role: `%s`\n", flatRole)
 
 	menu := &telebot.ReplyMarkup{}
 	var rows []telebot.Row
@@ -566,9 +566,9 @@ func (m *Module) handleRevokeConfirm(c telebot.Context) error {
 	var sb strings.Builder
 	sb.WriteString("✅ *Role Revoked*\n")
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-	sb.WriteString(fmt.Sprintf("User: `%d`\n", userID))
-	sb.WriteString(fmt.Sprintf("Revoked: `%s`\n", roleName))
-	sb.WriteString(fmt.Sprintf("By: @%s\n", c.Sender().Username))
+	fmt.Fprintf(&sb, "User: `%d`\n", userID)
+	fmt.Fprintf(&sb, "Revoked: `%s`\n", roleName)
+	fmt.Fprintf(&sb, "By: @%s\n", c.Sender().Username)
 
 	menu := &telebot.ReplyMarkup{}
 	btnBack := menu.Data("⬅ Back to RBAC", "rbac_back")

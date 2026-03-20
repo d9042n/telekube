@@ -100,7 +100,7 @@ func (m *Module) sendDeployList(c telebot.Context, clusterName, namespace string
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("🚀 *Deployments in %s* (cluster: %s)\n", nsLabel, clusterName))
+	fmt.Fprintf(&sb, "🚀 *Deployments in %s* (cluster: %s)\n", nsLabel, clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n\n")
 
 	for _, deploy := range deployList.Items {
@@ -124,9 +124,9 @@ func (m *Module) sendDeployList(c telebot.Context, clusterName, namespace string
 			nsStr = fmt.Sprintf(" [%s]", deploy.Namespace)
 		}
 
-		sb.WriteString(fmt.Sprintf("%s `%s`%s — %s\n", emoji, deploy.Name, nsStr, status))
-		sb.WriteString(fmt.Sprintf("   Replicas: %d/%d ready, %d available\n\n",
-			ready, desired, available))
+		fmt.Fprintf(&sb, "%s `%s`%s — %s\n", emoji, deploy.Name, nsStr, status)
+		fmt.Fprintf(&sb, "   Replicas: %d/%d ready, %d available\n\n",
+			ready, desired, available)
 	}
 
 	// Build keyboard

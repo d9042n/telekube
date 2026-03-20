@@ -43,7 +43,7 @@ func mustGetBody(t *testing.T, url string) string {
 	if err != nil {
 		t.Fatalf("GET %s: %v", url, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("reading body from %s: %v", url, err)
@@ -63,7 +63,7 @@ func mustPostJSON(t *testing.T, url string, payload interface{}) string {
 	if err != nil {
 		t.Fatalf("POST %s: %v", url, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("reading body: %v", err)

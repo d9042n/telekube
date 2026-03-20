@@ -130,7 +130,7 @@ func (m *Module) sendScaleableResources(c telebot.Context, clusterName, namespac
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📦 *Scaleable Resources* — %s (%s)\n", nsLabel, clusterName))
+	fmt.Fprintf(&sb, "📦 *Scaleable Resources* — %s (%s)\n", nsLabel, clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 
 	menu := &telebot.ReplyMarkup{}
@@ -143,7 +143,7 @@ func (m *Module) sendScaleableResources(c telebot.Context, clusterName, namespac
 			if d.Spec.Replicas != nil {
 				replicas = *d.Spec.Replicas
 			}
-			sb.WriteString(fmt.Sprintf("  📦 `%s` — %d/%d ready\n", d.Name, d.Status.ReadyReplicas, replicas))
+			fmt.Fprintf(&sb, "  📦 `%s` — %d/%d ready\n", d.Name, d.Status.ReadyReplicas, replicas)
 
 			data := m.sd(fmt.Sprintf("deploy|%s|%s|%s", d.Name, d.Namespace, clusterName))
 			btn := menu.Data(
@@ -162,7 +162,7 @@ func (m *Module) sendScaleableResources(c telebot.Context, clusterName, namespac
 			if s.Spec.Replicas != nil {
 				replicas = *s.Spec.Replicas
 			}
-			sb.WriteString(fmt.Sprintf("  📦 `%s` — %d/%d ready\n", s.Name, s.Status.ReadyReplicas, replicas))
+			fmt.Fprintf(&sb, "  📦 `%s` — %d/%d ready\n", s.Name, s.Status.ReadyReplicas, replicas)
 
 			data := m.sd(fmt.Sprintf("sts|%s|%s|%s", s.Name, s.Namespace, clusterName))
 			btn := menu.Data(
@@ -257,13 +257,13 @@ func (m *Module) handleScaleDetail(c telebot.Context) error {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📦 *%s* — %s\n", name, kindLabel))
+	fmt.Fprintf(&sb, "📦 *%s* — %s\n", name, kindLabel)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n")
-	sb.WriteString(fmt.Sprintf("Current:   %d replicas\n", currentReplicas))
-	sb.WriteString(fmt.Sprintf("Ready:     %d/%d\n", readyReplicas, currentReplicas))
-	sb.WriteString(fmt.Sprintf("Available: %d\n", available))
-	sb.WriteString(fmt.Sprintf("Cluster:   %s\n", clusterName))
-	sb.WriteString(fmt.Sprintf("Namespace: %s\n\n", namespace))
+	fmt.Fprintf(&sb, "Current:   %d replicas\n", currentReplicas)
+	fmt.Fprintf(&sb, "Ready:     %d/%d\n", readyReplicas, currentReplicas)
+	fmt.Fprintf(&sb, "Available: %d\n", available)
+	fmt.Fprintf(&sb, "Cluster:   %s\n", clusterName)
+	fmt.Fprintf(&sb, "Namespace: %s\n\n", namespace)
 	sb.WriteString("*Set replicas:*\n")
 
 	menu := &telebot.ReplyMarkup{}

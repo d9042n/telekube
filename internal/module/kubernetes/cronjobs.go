@@ -99,7 +99,7 @@ func (m *Module) sendCronJobList(c telebot.Context, clusterName, namespace strin
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("⏰ *CronJobs in %s* (cluster: %s)\n", nsLabel, clusterName))
+	fmt.Fprintf(&sb, "⏰ *CronJobs in %s* (cluster: %s)\n", nsLabel, clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n\n")
 
 	for _, cj := range cronJobs.Items {
@@ -116,27 +116,27 @@ func (m *Module) sendCronJobList(c telebot.Context, clusterName, namespace strin
 			nsStr = fmt.Sprintf(" [%s]", cj.Namespace)
 		}
 
-		sb.WriteString(fmt.Sprintf("%s `%s`%s — %s\n", emoji, cj.Name, nsStr, status))
-		sb.WriteString(fmt.Sprintf("   Schedule: `%s`\n", cj.Spec.Schedule))
+		fmt.Fprintf(&sb, "%s `%s`%s — %s\n", emoji, cj.Name, nsStr, status)
+		fmt.Fprintf(&sb, "   Schedule: `%s`\n", cj.Spec.Schedule)
 
 		// Last schedule time
 		if cj.Status.LastScheduleTime != nil {
 			lastRun := cj.Status.LastScheduleTime.Time
 			ago := time.Since(lastRun)
-			sb.WriteString(fmt.Sprintf("   Last Run: %s (%s ago)\n", lastRun.Format("2006-01-02 15:04:05"), formatDuration(ago)))
+			fmt.Fprintf(&sb, "   Last Run: %s (%s ago)\n", lastRun.Format("2006-01-02 15:04:05"), formatDuration(ago))
 		} else {
 			sb.WriteString("   Last Run: Never\n")
 		}
 
 		// Last successful time
 		if cj.Status.LastSuccessfulTime != nil {
-			sb.WriteString(fmt.Sprintf("   Last Success: %s\n", cj.Status.LastSuccessfulTime.Format("2006-01-02 15:04:05")))
+			fmt.Fprintf(&sb, "   Last Success: %s\n", cj.Status.LastSuccessfulTime.Format("2006-01-02 15:04:05"))
 		}
 
 		// Active jobs count
 		activeJobs := len(cj.Status.Active)
 		if activeJobs > 0 {
-			sb.WriteString(fmt.Sprintf("   🔄 Active Jobs: %d\n", activeJobs))
+			fmt.Fprintf(&sb, "   🔄 Active Jobs: %d\n", activeJobs)
 		}
 
 		sb.WriteString("\n")

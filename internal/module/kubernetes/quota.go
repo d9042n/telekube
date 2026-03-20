@@ -100,7 +100,7 @@ func (m *Module) sendQuotaView(c telebot.Context, clusterName, namespace string)
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📊 *Resource Quotas — %s* (cluster: %s)\n", namespace, clusterName))
+	fmt.Fprintf(&sb, "📊 *Resource Quotas — %s* (cluster: %s)\n", namespace, clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 
 	var warnings []string
@@ -154,12 +154,12 @@ func (m *Module) sendQuotaView(c telebot.Context, clusterName, namespace string)
 			}
 
 			displayName := formatResourceName(string(resourceName))
-			sb.WriteString(fmt.Sprintf("%s:  %s %d%%    %s / %s%s\n",
+			fmt.Fprintf(&sb, "%s:  %s %d%%    %s / %s%s\n",
 				displayName,
 				renderBar(usedVal, hardVal, barWidth),
 				percentage,
 				usedStr, hardStr,
-				emoji))
+				emoji)
 		}
 	}
 

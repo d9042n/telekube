@@ -105,16 +105,16 @@ func (m *Module) showMainMenu(c telebot.Context, pref *entity.NotificationPrefer
 	if severity == "" {
 		severity = "info"
 	}
-	sb.WriteString(fmt.Sprintf("📊 Min severity: `%s`\n", severity))
+	fmt.Fprintf(&sb, "📊 Min severity: `%s`\n", severity)
 
 	if len(pref.MutedClusters) > 0 {
-		sb.WriteString(fmt.Sprintf("🔇 Muted clusters: %s\n", strings.Join(pref.MutedClusters, ", ")))
+		fmt.Fprintf(&sb, "🔇 Muted clusters: %s\n", strings.Join(pref.MutedClusters, ", "))
 	} else {
 		sb.WriteString("🔇 Muted clusters: none\n")
 	}
 
 	if len(pref.MutedAlerts) > 0 {
-		sb.WriteString(fmt.Sprintf("🔇 Muted alerts: %s\n", strings.Join(pref.MutedAlerts, ", ")))
+		fmt.Fprintf(&sb, "🔇 Muted alerts: %s\n", strings.Join(pref.MutedAlerts, ", "))
 	}
 
 	if pref.QuietHoursStart != nil && pref.QuietHoursEnd != nil {
@@ -122,7 +122,7 @@ func (m *Module) showMainMenu(c telebot.Context, pref *entity.NotificationPrefer
 		if tz == "" {
 			tz = "UTC"
 		}
-		sb.WriteString(fmt.Sprintf("🌙 Quiet hours: %s — %s (%s)\n", *pref.QuietHoursStart, *pref.QuietHoursEnd, tz))
+		fmt.Fprintf(&sb, "🌙 Quiet hours: %s — %s (%s)\n", *pref.QuietHoursStart, *pref.QuietHoursEnd, tz)
 	} else {
 		sb.WriteString("🌙 Quiet hours: disabled\n")
 	}
@@ -279,7 +279,7 @@ func (m *Module) handleMuteCluster(c telebot.Context) error {
 	if len(pref.MutedClusters) > 0 {
 		sb.WriteString("\nCurrently muted:\n")
 		for _, c := range pref.MutedClusters {
-			sb.WriteString(fmt.Sprintf("  🔇 %s\n", c))
+			fmt.Fprintf(&sb, "  🔇 %s\n", c)
 			btn := menu.Data(fmt.Sprintf("🔔 Unmute %s", c), "notify_mute_cluster_toggle", c)
 			rows = append(rows, menu.Row(btn))
 		}

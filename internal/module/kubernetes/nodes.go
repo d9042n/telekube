@@ -75,7 +75,7 @@ func (m *Module) sendNodeList(c telebot.Context) error {
 	metricsClient, _ := m.cluster.MetricsClient(clusterName)
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("🖥️ *Nodes* (cluster: %s)\n", clusterName))
+	fmt.Fprintf(&sb, "🖥️ *Nodes* (cluster: %s)\n", clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n\n")
 
 	menu := &telebot.ReplyMarkup{}
@@ -118,8 +118,8 @@ func (m *Module) sendNodeList(c telebot.Context) error {
 			}
 		}
 
-		sb.WriteString(fmt.Sprintf("%s `%s`  %s  %d pods\n   CPU: %s  RAM: %s  Disk: %s\n\n",
-			statusEmoji, node.Name, statusText, podCount, cpuStr, ramStr, diskStr))
+		fmt.Fprintf(&sb, "%s `%s`  %s  %d pods\n   CPU: %s  RAM: %s  Disk: %s\n\n",
+			statusEmoji, node.Name, statusText, podCount, cpuStr, ramStr, diskStr)
 
 		data := m.sd(fmt.Sprintf("%s|%s", node.Name, clusterName))
 		btn := menu.Data(
@@ -183,10 +183,10 @@ func (m *Module) handleNodeDetail(c telebot.Context) error {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("🖥️ *%s*\n", nodeName))
+	fmt.Fprintf(&sb, "🖥️ *%s*\n", nodeName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n")
-	sb.WriteString(fmt.Sprintf("Status:     %s %s\n", statusEmoji, statusText))
-	sb.WriteString(fmt.Sprintf("Pods:       %d\n", podCount))
+	fmt.Fprintf(&sb, "Status:     %s %s\n", statusEmoji, statusText)
+	fmt.Fprintf(&sb, "Pods:       %d\n", podCount)
 
 	// Resource capacity (always available from node status)
 	cpuCap := node.Status.Allocatable.Cpu().MilliValue()
@@ -205,31 +205,31 @@ func (m *Module) handleNodeDetail(c telebot.Context) error {
 
 			if cpuCap > 0 {
 				cpuRatio := float64(cpuUsed) / float64(cpuCap)
-				sb.WriteString(fmt.Sprintf("CPU:        %s %d%%  %dm / %dm\n",
-					renderBar(cpuUsed, cpuCap, barWidth), int(cpuRatio*100), cpuUsed, cpuCap))
+				fmt.Fprintf(&sb, "CPU:        %s %d%%  %dm / %dm\n",
+					renderBar(cpuUsed, cpuCap, barWidth), int(cpuRatio*100), cpuUsed, cpuCap)
 			}
 			if ramCap > 0 {
 				ramRatio := float64(ramUsed) / float64(ramCap)
-				sb.WriteString(fmt.Sprintf("RAM:        %s %d%%  %s / %s\n",
-					renderBar(ramUsed, ramCap, barWidth), int(ramRatio*100), formatBytes(ramUsed), formatBytes(ramCap)))
+				fmt.Fprintf(&sb, "RAM:        %s %d%%  %s / %s\n",
+					renderBar(ramUsed, ramCap, barWidth), int(ramRatio*100), formatBytes(ramUsed), formatBytes(ramCap))
 			}
 		}
 	}
 
 	// Fallback: show capacity only if no metrics available
 	if !hasMetrics {
-		sb.WriteString(fmt.Sprintf("CPU:        %dm (allocatable)\n", cpuCap))
-		sb.WriteString(fmt.Sprintf("RAM:        %s (allocatable)\n", formatBytes(ramCap)))
+		fmt.Fprintf(&sb, "CPU:        %dm (allocatable)\n", cpuCap)
+		fmt.Fprintf(&sb, "RAM:        %s (allocatable)\n", formatBytes(ramCap))
 	}
 
 	// Disk info (always from capacity — live disk metrics not in metrics-server)
 	if diskCap > 0 {
-		sb.WriteString(fmt.Sprintf("Disk:       %s (allocatable)\n", formatBytes(diskCap)))
+		fmt.Fprintf(&sb, "Disk:       %s (allocatable)\n", formatBytes(diskCap))
 	}
 
 	// Node metadata
-	sb.WriteString(fmt.Sprintf("Kubelet:    %s\n", node.Status.NodeInfo.KubeletVersion))
-	sb.WriteString(fmt.Sprintf("OS:         %s %s\n", node.Status.NodeInfo.OperatingSystem, node.Status.NodeInfo.OSImage))
+	fmt.Fprintf(&sb, "Kubelet:    %s\n", node.Status.NodeInfo.KubeletVersion)
+	fmt.Fprintf(&sb, "OS:         %s %s\n", node.Status.NodeInfo.OperatingSystem, node.Status.NodeInfo.OSImage)
 
 	// Buttons
 	menu := &telebot.ReplyMarkup{}
@@ -544,7 +544,7 @@ func (m *Module) performDrain(c telebot.Context, user *entity.User, nodeName, cl
 	total := 0
 
 	var evictLog strings.Builder
-	evictLog.WriteString(fmt.Sprintf("🔄 *Draining %s...*\n\n", nodeName))
+	fmt.Fprintf(&evictLog, "🔄 *Draining %s...*\n\n", nodeName)
 
 	for _, pod := range pods.Items {
 		if isDaemonSetPod(&pod) {
@@ -559,7 +559,7 @@ func (m *Module) performDrain(c telebot.Context, user *entity.User, nodeName, cl
 			continue
 		}
 
-		evictLog.WriteString(fmt.Sprintf("Evicting `%s`...", pod.Name))
+		fmt.Fprintf(&evictLog, "Evicting `%s`...", pod.Name)
 
 		gracePeriod := drainGraceSecs
 		eviction := &policyv1.Eviction{
@@ -676,7 +676,7 @@ func (m *Module) handleNodeTopPods(c telebot.Context) error {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📊 *Top Pods on %s* (%s)\n", nodeName, clusterName))
+	fmt.Fprintf(&sb, "📊 *Top Pods on %s* (%s)\n", nodeName, clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n\n")
 
 	count := 0
@@ -692,10 +692,10 @@ func (m *Module) handleNodeTopPods(c telebot.Context) error {
 			totalRAM += container.Usage.Memory().Value()
 		}
 
-		sb.WriteString(fmt.Sprintf("📦 `%s`  CPU: %dm  RAM: %s\n", pm.Name, totalCPU, formatBytes(totalRAM)))
+		fmt.Fprintf(&sb, "📦 `%s`  CPU: %dm  RAM: %s\n", pm.Name, totalCPU, formatBytes(totalRAM))
 		count++
 		if count >= 15 {
-			sb.WriteString(fmt.Sprintf("\n...and %d more", len(allPodMetrics.Items)-15))
+			fmt.Fprintf(&sb, "\n...and %d more", len(allPodMetrics.Items)-15)
 			break
 		}
 	}

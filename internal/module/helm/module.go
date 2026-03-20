@@ -367,7 +367,7 @@ func formatReleaseList(cluster, namespace string, releases []*helmrelease.Releas
 	if ns == "" {
 		ns = "All Namespaces"
 	}
-	sb.WriteString(fmt.Sprintf("⎈ Helm Releases — %s (cluster: %s)\n", ns, cluster))
+	fmt.Fprintf(&sb, "⎈ Helm Releases — %s (cluster: %s)\n", ns, cluster)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 	if len(releases) == 0 {
 		sb.WriteString("No releases found\n")
@@ -376,27 +376,27 @@ func formatReleaseList(cluster, namespace string, releases []*helmrelease.Releas
 	for _, r := range releases {
 		status := string(r.Info.Status)
 		age := time.Since(r.Info.LastDeployed.Time).Round(time.Minute)
-		sb.WriteString(fmt.Sprintf("%s %-20s %-10s %-10s Rev %-3d %s ago\n",
+		fmt.Fprintf(&sb, "%s %-20s %-10s %-10s Rev %-3d %s ago\n",
 			statusEmoji(r.Info.Status),
 			r.Name,
 			r.Chart.Metadata.AppVersion,
 			status,
 			r.Version,
 			age,
-		))
+		)
 	}
 	return sb.String()
 }
 
 func formatReleaseDetail(rel *helmrelease.Release, history []*helmrelease.Release) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("⎈ %s (%s)\n", rel.Name, rel.Namespace))
+	fmt.Fprintf(&sb, "⎈ %s (%s)\n", rel.Name, rel.Namespace)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━\n")
-	sb.WriteString(fmt.Sprintf("Chart:    %s\n", rel.Chart.Metadata.Name+"-"+rel.Chart.Metadata.Version))
-	sb.WriteString(fmt.Sprintf("App:      %s\n", rel.Chart.Metadata.AppVersion))
-	sb.WriteString(fmt.Sprintf("Status:   %s\n", rel.Info.Status))
-	sb.WriteString(fmt.Sprintf("Revision: %d\n", rel.Version))
-	sb.WriteString(fmt.Sprintf("Updated:  %s\n", rel.Info.LastDeployed.UTC().Format("2006-01-02 15:04 UTC")))
+	fmt.Fprintf(&sb, "Chart:    %s\n", rel.Chart.Metadata.Name+"-"+rel.Chart.Metadata.Version)
+	fmt.Fprintf(&sb, "App:      %s\n", rel.Chart.Metadata.AppVersion)
+	fmt.Fprintf(&sb, "Status:   %s\n", rel.Info.Status)
+	fmt.Fprintf(&sb, "Revision: %d\n", rel.Version)
+	fmt.Fprintf(&sb, "Updated:  %s\n", rel.Info.LastDeployed.UTC().Format("2006-01-02 15:04 UTC"))
 
 	if len(history) > 0 {
 		sb.WriteString("\nHistory:\n")
@@ -405,7 +405,7 @@ func formatReleaseDetail(rel *helmrelease.Release, history []*helmrelease.Releas
 			if h.Version == rel.Version {
 				marker = " (current)"
 			}
-			sb.WriteString(fmt.Sprintf("  Rev %-3d — %s%s\n", h.Version, h.Chart.Metadata.AppVersion, marker))
+			fmt.Fprintf(&sb, "  Rev %-3d — %s%s\n", h.Version, h.Chart.Metadata.AppVersion, marker)
 		}
 	}
 	return sb.String()

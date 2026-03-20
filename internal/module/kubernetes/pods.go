@@ -115,7 +115,7 @@ func (m *Module) sendPodList(c telebot.Context, clusterName, namespace string, p
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📦 *Pods in %s* (cluster: %s)\n\n", nsLabel, clusterName))
+	fmt.Fprintf(&sb, "📦 *Pods in %s* (cluster: %s)\n\n", nsLabel, clusterName)
 	for _, item := range items {
 		sb.WriteString(item + "\n")
 	}
@@ -278,28 +278,28 @@ func formatPodDetail(pod *corev1.Pod, clusterName string) string {
 	emoji := tfmt.StatusEmoji(status)
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📦 *%s*\n", pod.Name))
+	fmt.Fprintf(&sb, "📦 *%s*\n", pod.Name)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n")
-	sb.WriteString(fmt.Sprintf("Namespace:  `%s`\n", pod.Namespace))
-	sb.WriteString(fmt.Sprintf("Status:     %s %s\n", emoji, status))
-	sb.WriteString(fmt.Sprintf("Cluster:    %s\n", clusterName))
+	fmt.Fprintf(&sb, "Namespace:  `%s`\n", pod.Namespace)
+	fmt.Fprintf(&sb, "Status:     %s %s\n", emoji, status)
+	fmt.Fprintf(&sb, "Cluster:    %s\n", clusterName)
 
 	if pod.Spec.NodeName != "" {
-		sb.WriteString(fmt.Sprintf("Node:       `%s`\n", pod.Spec.NodeName))
+		fmt.Fprintf(&sb, "Node:       `%s`\n", pod.Spec.NodeName)
 	}
 	if pod.Status.PodIP != "" {
-		sb.WriteString(fmt.Sprintf("IP:         `%s`\n", pod.Status.PodIP))
+		fmt.Fprintf(&sb, "IP:         `%s`\n", pod.Status.PodIP)
 	}
 
 	age := time.Since(pod.CreationTimestamp.Time)
-	sb.WriteString(fmt.Sprintf("Age:        %s\n", formatDuration(age)))
+	fmt.Fprintf(&sb, "Age:        %s\n", formatDuration(age))
 
 	// Images
 	var images []string
 	for _, c := range pod.Spec.Containers {
 		images = append(images, c.Image)
 	}
-	sb.WriteString(fmt.Sprintf("Images:     %s\n", strings.Join(images, ", ")))
+	fmt.Fprintf(&sb, "Images:     %s\n", strings.Join(images, ", "))
 
 	// Container statuses
 	sb.WriteString("\n*Containers:*\n")
@@ -316,9 +316,9 @@ func formatPodDetail(pod *corev1.Pod, clusterName string) string {
 				cStatus = fmt.Sprintf("exit code %d", cs.State.Terminated.ExitCode)
 			}
 		}
-		sb.WriteString(fmt.Sprintf("  %s `%s` — %s", cEmoji, cs.Name, cStatus))
+		fmt.Fprintf(&sb, "  %s `%s` — %s", cEmoji, cs.Name, cStatus)
 		if cs.RestartCount > 0 {
-			sb.WriteString(fmt.Sprintf(" (restarts: %d)", cs.RestartCount))
+			fmt.Fprintf(&sb, " (restarts: %d)", cs.RestartCount)
 		}
 		sb.WriteString("\n")
 	}
@@ -333,7 +333,7 @@ func formatPodDetail(pod *corev1.Pod, clusterName string) string {
 		} else if cs.State.Waiting != nil {
 			cStatus = cs.State.Waiting.Reason
 		}
-		sb.WriteString(fmt.Sprintf("  %s `%s` (init) — %s\n", cEmoji, cs.Name, cStatus))
+		fmt.Fprintf(&sb, "  %s `%s` (init) — %s\n", cEmoji, cs.Name, cStatus)
 	}
 
 	return sb.String()

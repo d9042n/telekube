@@ -146,7 +146,7 @@ func (r *rbacRepo) GetUserRoleBindings(ctx context.Context, userID int64) ([]ent
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanSQLiteBindings(rows)
 }
 
@@ -162,7 +162,7 @@ func (r *rbacRepo) ListAllBindings(ctx context.Context) ([]entity.UserRoleBindin
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanSQLiteBindings(rows)
 }
 
@@ -244,7 +244,7 @@ func (r *approvalRepo) ListPending(ctx context.Context) ([]entity.ApprovalReques
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanSQLiteApprovals(rows)
 }
 
@@ -257,7 +257,7 @@ func (r *approvalRepo) ListByRequester(ctx context.Context, userID int64) ([]ent
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanSQLiteApprovals(rows)
 }
 

@@ -120,12 +120,12 @@ func formatResolutionMessage(req *entity.ApprovalRequest) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s — Request #%s\n", emoji, req.ID[:8]))
+	fmt.Fprintf(&sb, "%s — Request #%s\n", emoji, req.ID[:8])
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-	sb.WriteString(fmt.Sprintf("🎯 Action:  %s\n", req.Action))
-	sb.WriteString(fmt.Sprintf("📦 Resource: %s\n", req.Resource))
+	fmt.Fprintf(&sb, "🎯 Action:  %s\n", req.Action)
+	fmt.Fprintf(&sb, "📦 Resource: %s\n", req.Resource)
 	if req.Cluster != "" {
-		sb.WriteString(fmt.Sprintf("📍 Cluster: %s\n", req.Cluster))
+		fmt.Fprintf(&sb, "📍 Cluster: %s\n", req.Cluster)
 	}
 
 	for _, a := range req.Approvers {
@@ -134,9 +134,9 @@ func formatResolutionMessage(req *entity.ApprovalRequest) string {
 			if a.Decision == "rejected" {
 				decEmoji = "❌"
 			}
-			sb.WriteString(fmt.Sprintf("\n%s By: @%d\n", decEmoji, a.UserID))
+			fmt.Fprintf(&sb, "\n%s By: @%d\n", decEmoji, a.UserID)
 			if a.Comment != "" {
-				sb.WriteString(fmt.Sprintf("   Reason: %s\n", a.Comment))
+				fmt.Fprintf(&sb, "   Reason: %s\n", a.Comment)
 			}
 		}
 	}
@@ -146,22 +146,22 @@ func formatResolutionMessage(req *entity.ApprovalRequest) string {
 // BuildApprovalMessage creates the message shown to approvers.
 func BuildApprovalMessage(req *entity.ApprovalRequest) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📋 APPROVAL REQUEST #%s\n", req.ID[:8]))
+	fmt.Fprintf(&sb, "📋 APPROVAL REQUEST #%s\n", req.ID[:8])
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-	sb.WriteString(fmt.Sprintf("👤 Requester: @%s\n", req.RequesterName))
-	sb.WriteString(fmt.Sprintf("🎯 Action:    %s\n", req.Action))
-	sb.WriteString(fmt.Sprintf("📦 Resource:  %s\n", req.Resource))
+	fmt.Fprintf(&sb, "👤 Requester: @%s\n", req.RequesterName)
+	fmt.Fprintf(&sb, "🎯 Action:    %s\n", req.Action)
+	fmt.Fprintf(&sb, "📦 Resource:  %s\n", req.Resource)
 	if req.Cluster != "" {
-		sb.WriteString(fmt.Sprintf("📍 Cluster:   %s\n", req.Cluster))
+		fmt.Fprintf(&sb, "📍 Cluster:   %s\n", req.Cluster)
 	}
 	if req.Namespace != "" {
-		sb.WriteString(fmt.Sprintf("🏷️  Namespace: %s\n", req.Namespace))
+		fmt.Fprintf(&sb, "🏷️  Namespace: %s\n", req.Namespace)
 	}
-	sb.WriteString(fmt.Sprintf("\nRequires: %d approval(s)\n", req.RequiredApprovals))
-	sb.WriteString(fmt.Sprintf("Expires:  %s (%.0f minutes)\n",
+	fmt.Fprintf(&sb, "\nRequires: %d approval(s)\n", req.RequiredApprovals)
+	fmt.Fprintf(&sb, "Expires:  %s (%.0f minutes)\n",
 		req.ExpiresAt.UTC().Format("2006-01-02 15:04 UTC"),
 		time.Until(req.ExpiresAt).Minutes(),
-	))
+	)
 	return sb.String()
 }
 

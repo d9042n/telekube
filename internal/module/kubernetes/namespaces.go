@@ -56,7 +56,7 @@ func (m *Module) handleNamespacesCommand(c telebot.Context) error {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📁 *Namespaces* (cluster: %s)\n", clusterName))
+	fmt.Fprintf(&sb, "📁 *Namespaces* (cluster: %s)\n", clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n\n")
 
 	activeCount := 0
@@ -73,11 +73,11 @@ func (m *Module) handleNamespacesCommand(c telebot.Context) error {
 		}
 
 		age := time.Since(ns.CreationTimestamp.Time)
-		sb.WriteString(fmt.Sprintf("%s `%s` — %s (%s)\n", emoji, ns.Name, status, formatDuration(age)))
+		fmt.Fprintf(&sb, "%s `%s` — %s (%s)\n", emoji, ns.Name, status, formatDuration(age))
 	}
 
-	sb.WriteString(fmt.Sprintf("\n📊 Total: %d (%d Active, %d Terminating)",
-		len(nsList.Items), activeCount, terminatingCount))
+	fmt.Fprintf(&sb, "\n📊 Total: %d (%d Active, %d Terminating)",
+		len(nsList.Items), activeCount, terminatingCount)
 
 	menu := &telebot.ReplyMarkup{}
 	btnRefresh := menu.Data("🔄 Refresh", "k8s_namespaces_refresh", clusterName)
@@ -112,7 +112,7 @@ func (m *Module) handleNamespacesRefresh(c telebot.Context) error {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📁 *Namespaces* (cluster: %s)\n", clusterName))
+	fmt.Fprintf(&sb, "📁 *Namespaces* (cluster: %s)\n", clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n\n")
 
 	activeCount := 0
@@ -129,11 +129,11 @@ func (m *Module) handleNamespacesRefresh(c telebot.Context) error {
 		}
 
 		age := time.Since(ns.CreationTimestamp.Time)
-		sb.WriteString(fmt.Sprintf("%s `%s` — %s (%s)\n", emoji, ns.Name, status, formatDuration(age)))
+		fmt.Fprintf(&sb, "%s `%s` — %s (%s)\n", emoji, ns.Name, status, formatDuration(age))
 	}
 
-	sb.WriteString(fmt.Sprintf("\n📊 Total: %d (%d Active, %d Terminating)",
-		len(nsList.Items), activeCount, terminatingCount))
+	fmt.Fprintf(&sb, "\n📊 Total: %d (%d Active, %d Terminating)",
+		len(nsList.Items), activeCount, terminatingCount)
 
 	menu := &telebot.ReplyMarkup{}
 	btnRefresh := menu.Data("🔄 Refresh", "k8s_namespaces_refresh", clusterName)

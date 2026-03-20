@@ -181,7 +181,7 @@ func (m *Module) sendPodTop(c telebot.Context, clusterName, namespace string, pa
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📊 *Resource Usage — %s* (cluster: %s)\n", nsLabel, clusterName))
+	fmt.Fprintf(&sb, "📊 *Resource Usage — %s* (cluster: %s)\n", nsLabel, clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 
 	for _, pm := range podMetrics.Items[start:end] {
@@ -212,30 +212,30 @@ func (m *Module) sendPodTop(c telebot.Context, clusterName, namespace string, pa
 			}
 		}
 
-		sb.WriteString(fmt.Sprintf("📦 `%s`\n", pm.Name))
+		fmt.Fprintf(&sb, "📦 `%s`\n", pm.Name)
 
 		// CPU
 		if cpuLimit > 0 {
 			cpuRatio := float64(totalCPU) / float64(cpuLimit)
-			sb.WriteString(fmt.Sprintf("   CPU %s %d%%   %dm / %dm%s\n",
+			fmt.Fprintf(&sb, "   CPU %s %d%%   %dm / %dm%s\n",
 				renderBar(totalCPU, cpuLimit, barWidth),
 				int(cpuRatio*100),
 				totalCPU, cpuLimit,
-				thresholdEmoji(cpuRatio, true)))
+				thresholdEmoji(cpuRatio, true))
 		} else {
-			sb.WriteString(fmt.Sprintf("   CPU: %dm (no limit set)\n", totalCPU))
+			fmt.Fprintf(&sb, "   CPU: %dm (no limit set)\n", totalCPU)
 		}
 
 		// RAM
 		if ramLimit > 0 {
 			ramRatio := float64(totalRAM) / float64(ramLimit)
-			sb.WriteString(fmt.Sprintf("   RAM %s %d%%   %s / %s%s\n",
+			fmt.Fprintf(&sb, "   RAM %s %d%%   %s / %s%s\n",
 				renderBar(totalRAM, ramLimit, barWidth),
 				int(ramRatio*100),
 				formatBytes(totalRAM), formatBytes(ramLimit),
-				thresholdEmoji(ramRatio, false)))
+				thresholdEmoji(ramRatio, false))
 		} else {
-			sb.WriteString(fmt.Sprintf("   RAM: %s (no limit set)\n", formatBytes(totalRAM)))
+			fmt.Fprintf(&sb, "   RAM: %s (no limit set)\n", formatBytes(totalRAM))
 		}
 		sb.WriteString("\n")
 	}
@@ -374,7 +374,7 @@ func (m *Module) sendNodeTop(c telebot.Context) error {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📊 *Node Resource Usage* (cluster: %s)\n", clusterName))
+	fmt.Fprintf(&sb, "📊 *Node Resource Usage* (cluster: %s)\n", clusterName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 
 	for _, nm := range nodeMetrics.Items {
@@ -394,28 +394,28 @@ func (m *Module) sendNodeTop(c telebot.Context) error {
 			}
 		}
 
-		sb.WriteString(fmt.Sprintf("🖥️ *%s* (%s %s)\n", nm.Name, statusEmoji, statusText))
+		fmt.Fprintf(&sb, "🖥️ *%s* (%s %s)\n", nm.Name, statusEmoji, statusText)
 
 		if ok && info.cpuCap > 0 {
 			cpuRatio := float64(totalCPU) / float64(info.cpuCap)
-			sb.WriteString(fmt.Sprintf("   CPU %s %d%%   %dm / %dm%s\n",
+			fmt.Fprintf(&sb, "   CPU %s %d%%   %dm / %dm%s\n",
 				renderBar(totalCPU, info.cpuCap, barWidth),
 				int(cpuRatio*100),
 				totalCPU, info.cpuCap,
-				thresholdEmoji(cpuRatio, true)))
+				thresholdEmoji(cpuRatio, true))
 		} else {
-			sb.WriteString(fmt.Sprintf("   CPU: %dm\n", totalCPU))
+			fmt.Fprintf(&sb, "   CPU: %dm\n", totalCPU)
 		}
 
 		if ok && info.ramCap > 0 {
 			ramRatio := float64(totalRAM) / float64(info.ramCap)
-			sb.WriteString(fmt.Sprintf("   RAM %s %d%%   %s / %s%s\n",
+			fmt.Fprintf(&sb, "   RAM %s %d%%   %s / %s%s\n",
 				renderBar(totalRAM, info.ramCap, barWidth),
 				int(ramRatio*100),
 				formatBytes(totalRAM), formatBytes(info.ramCap),
-				thresholdEmoji(ramRatio, false)))
+				thresholdEmoji(ramRatio, false))
 		} else {
-			sb.WriteString(fmt.Sprintf("   RAM: %s\n", formatBytes(totalRAM)))
+			fmt.Fprintf(&sb, "   RAM: %s\n", formatBytes(totalRAM))
 		}
 		sb.WriteString("\n")
 	}

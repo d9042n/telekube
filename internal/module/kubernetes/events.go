@@ -85,7 +85,7 @@ func (m *Module) fetchAndSendEvents(c telebot.Context, podName, namespace, clust
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("🔍 *Events for %s*\n", podName))
+	fmt.Fprintf(&sb, "🔍 *Events for %s*\n", podName)
 	sb.WriteString("━━━━━━━━━━━━━━━━━━\n\n")
 
 	if len(events.Items) == 0 {
@@ -98,11 +98,11 @@ func (m *Module) fetchAndSendEvents(c telebot.Context, podName, namespace, clust
 				eventTime = event.CreationTimestamp.Format("15:04:05")
 			}
 
-			sb.WriteString(fmt.Sprintf("%s %s — *%s*: %s\n",
-				emoji, eventTime, event.Reason, event.Message))
+			fmt.Fprintf(&sb, "%s %s — *%s*: %s\n",
+				emoji, eventTime, event.Reason, event.Message)
 
 			if event.Count > 1 {
-				sb.WriteString(fmt.Sprintf("   (occurred %d times)\n", event.Count))
+				fmt.Fprintf(&sb, "   (occurred %d times)\n", event.Count)
 			}
 		}
 	}
