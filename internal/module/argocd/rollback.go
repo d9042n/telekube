@@ -137,7 +137,9 @@ func (m *Module) handleRollbackConfirm(c telebot.Context) error {
 	}
 
 	var revID int64
-	fmt.Sscanf(revIDStr, "%d", &revID)
+	if _, err := fmt.Sscanf(revIDStr, "%d", &revID); err != nil {
+		return c.Respond(&telebot.CallbackResponse{Text: "⚠️ Invalid revision ID"})
+	}
 
 	_ = c.Respond(&telebot.CallbackResponse{Text: "🔄 Rolling back..."})
 

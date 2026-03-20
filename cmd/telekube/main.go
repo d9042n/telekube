@@ -66,7 +66,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error creating logger: %v\n", err)
 		os.Exit(1)
 	}
-	defer log.Sync()
+	defer func() { _ = log.Sync() }()
 
 	log.Info("starting telekube",
 		zap.String("version", version.Version),

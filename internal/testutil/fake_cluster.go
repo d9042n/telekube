@@ -39,7 +39,7 @@ func NewFakeClusterManager(objects ...runtime.Object) *FakeClusterManager {
 
 // NewFakeClusterManagerNamed creates a fake cluster manager with a custom name.
 func NewFakeClusterManagerNamed(clusterName string, objects ...runtime.Object) *FakeClusterManager {
-	cs := kubefake.NewSimpleClientset(objects...)
+	cs := kubefake.NewClientset(objects...)
 	ms := metricsfake.NewSimpleClientset()
 	ds := fake.NewSimpleDynamicClient(scheme.Scheme)
 

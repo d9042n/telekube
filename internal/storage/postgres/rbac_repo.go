@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/d9042n/telekube/internal/entity"
 	"github.com/d9042n/telekube/internal/storage"
@@ -302,5 +301,4 @@ func (noopApprovalRepo) ExpireOld(_ context.Context) (int, error) { return 0, ni
 var _ storage.ApprovalRepository = (*ApprovalRepo)(nil)
 var _ storage.ApprovalRepository = noopApprovalRepo{}
 
-// timePtr is a convenience helper for nullable time.
-func timePtr(t time.Time) *time.Time { return &t }
+

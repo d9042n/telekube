@@ -116,14 +116,7 @@ func (f *fakeTelebotContext) Set(key string, val interface{}) {
 	f.ctxStore[key] = val
 }
 
-func (f *fakeTelebotContext) lastSent() string {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if len(f.sent) == 0 {
-		return ""
-	}
-	return f.sent[len(f.sent)-1]
-}
+
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

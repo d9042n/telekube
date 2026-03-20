@@ -40,7 +40,7 @@ func TestListApplications(t *testing.T) {
 				assert.Equal(t, http.MethodGet, r.Method)
 				assert.Equal(t, "/api/v1/applications", r.URL.Path)
 				assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
-				json.NewEncoder(w).Encode(map[string]interface{}{
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
 					"items": []map[string]interface{}{
 						{
 							"metadata": map[string]interface{}{"name": "my-app", "namespace": "argocd"},
@@ -66,7 +66,7 @@ func TestListApplications(t *testing.T) {
 		{
 			name: "empty list",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				json.NewEncoder(w).Encode(map[string]interface{}{"items": []interface{}{}})
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"items": []interface{}{}})
 			},
 			expectLen: 0,
 			expectErr: false,
@@ -75,7 +75,7 @@ func TestListApplications(t *testing.T) {
 			name: "server error",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("internal error"))
+				_, _ = w.Write([]byte("internal error"))
 			},
 			expectLen: 0,
 			expectErr: true,
@@ -84,7 +84,7 @@ func TestListApplications(t *testing.T) {
 			name: "unauthorized",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte("unauthorized"))
+				_, _ = w.Write([]byte("unauthorized"))
 			},
 			expectLen: 0,
 			expectErr: true,
@@ -113,7 +113,7 @@ func TestGetApplication(t *testing.T) {
 
 	srv, client := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/applications/my-app", r.URL.Path)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"metadata": map[string]interface{}{"name": "my-app", "namespace": "argocd"},
 			"spec": map[string]interface{}{
 				"project": "default",
@@ -147,10 +147,10 @@ func TestSyncApplication(t *testing.T) {
 		assert.Contains(t, r.URL.Path, "/sync")
 
 		var payload map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&payload)
+		_ = json.NewDecoder(r.Body).Decode(&payload)
 		assert.Equal(t, false, payload["prune"])
 
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": map[string]interface{}{
 				"operationState": map[string]interface{}{
 					"phase":   "Succeeded",
@@ -183,7 +183,7 @@ func TestPing(t *testing.T) {
 			name: "healthy",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "/api/version", r.URL.Path)
-				json.NewEncoder(w).Encode(map[string]interface{}{"Version": "2.8.0"})
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"Version": "2.8.0"})
 			},
 			expectErr: false,
 		},

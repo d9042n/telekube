@@ -71,6 +71,14 @@ func TestStorage_SQLite_RBAC_UserRole(t *testing.T) {
 
 	const userID = int64(123456789)
 
+	// Create user first (SetUserRole requires the user to exist)
+	require.NoError(t, store.Users().Upsert(ctx, &entity.User{
+		TelegramID: userID,
+		Username:   "testuser",
+		Role:       "viewer",
+		IsActive:   true,
+	}))
+
 	// Set a role
 	err := rbacStore.SetUserRole(ctx, userID, "operator")
 	require.NoError(t, err)

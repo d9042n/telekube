@@ -111,7 +111,9 @@ func (m *Module) handleLogsMore(c telebot.Context) error {
 
 	podName, namespace, clusterName, container := parts[0], parts[1], parts[2], parts[3]
 	var tailLines int
-	fmt.Sscanf(parts[4], "%d", &tailLines)
+	if _, err := fmt.Sscanf(parts[4], "%d", &tailLines); err != nil {
+		tailLines = 100
+	}
 	if tailLines <= 0 {
 		tailLines = 100
 	}
@@ -205,7 +207,7 @@ func (m *Module) fetchAndSendLogs(c telebot.Context, podName, namespace, cluster
 			return c.Send(part, markup, telebot.ModeMarkdown)
 		}
 		// Non-last parts
-		c.Send(part, telebot.ModeMarkdown)
+		_ = c.Send(part, telebot.ModeMarkdown)
 	}
 
 	return nil

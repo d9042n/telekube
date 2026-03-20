@@ -264,7 +264,9 @@ func (m *Module) handleRollbackConfirm(c telebot.Context) error {
 	}
 	clusterName, namespace, releaseName := parts[0], parts[1], parts[2]
 	var version int
-	fmt.Sscanf(parts[3], "%d", &version)
+	if _, err := fmt.Sscanf(parts[3], "%d", &version); err != nil {
+		return c.Edit("❌ Invalid revision number")
+	}
 
 	ok, err := m.rbac.HasPermission(context.Background(), c.Sender().ID, rbac.PermHelmReleasesRollback)
 	if err != nil || !ok {

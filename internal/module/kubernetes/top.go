@@ -284,7 +284,9 @@ func (m *Module) handleTopPage(c telebot.Context) error {
 
 	namespace, clusterName := parts[0], parts[1]
 	var page int
-	fmt.Sscanf(parts[2], "%d", &page)
+	if _, err := fmt.Sscanf(parts[2], "%d", &page); err != nil {
+		page = 1
+	}
 	if page < 1 {
 		page = 1
 	}

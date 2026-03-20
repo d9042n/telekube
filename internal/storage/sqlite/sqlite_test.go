@@ -153,7 +153,7 @@ func TestAuditRepo_List_WithFilters(t *testing.T) {
 
 	// Filter by cluster
 	cluster := "prod"
-	result, total, err = store.Audit().List(context.Background(), storage.AuditFilter{
+	_, total, err = store.Audit().List(context.Background(), storage.AuditFilter{
 		Cluster:  &cluster,
 		Page:     1,
 		PageSize: 10,

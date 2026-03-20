@@ -331,7 +331,9 @@ func (m *Module) handleScaleSet(c telebot.Context) error {
 
 	kind, name, namespace, clusterName := parts[0], parts[1], parts[2], parts[3]
 	var targetReplicas int32
-	fmt.Sscanf(parts[4], "%d", &targetReplicas)
+	if _, err := fmt.Sscanf(parts[4], "%d", &targetReplicas); err != nil {
+		return c.Respond(&telebot.CallbackResponse{Text: "⚠️ Invalid replica count"})
+	}
 
 	if targetReplicas < 0 {
 		return c.Respond(&telebot.CallbackResponse{Text: "⚠️ Cannot scale to negative replicas"})
@@ -410,7 +412,9 @@ func (m *Module) handleScaleConfirm(c telebot.Context) error {
 
 	kind, name, namespace, clusterName := parts[0], parts[1], parts[2], parts[3]
 	var targetReplicas int32
-	fmt.Sscanf(parts[4], "%d", &targetReplicas)
+	if _, err := fmt.Sscanf(parts[4], "%d", &targetReplicas); err != nil {
+		return c.Respond(&telebot.CallbackResponse{Text: "⚠️ Invalid replica count"})
+	}
 
 	// Check approval requirement
 	if m.approval != nil {
@@ -603,13 +607,4 @@ func (m *Module) handleScaleBack(c telebot.Context) error {
 	return m.handleScale(c)
 }
 
-// handleScaleNsBack goes back to resource list for a namespace.
-func (m *Module) handleScaleNsBack(c telebot.Context) error {
-	parts := strings.SplitN(c.Callback().Data, "|", 2)
-	if len(parts) != 2 {
-		return c.Respond(&telebot.CallbackResponse{Text: "⚠️ Invalid data"})
-	}
 
-	namespace, clusterName := parts[0], parts[1]
-	return m.sendScaleableResources(c, clusterName, namespace)
-}

@@ -102,7 +102,7 @@ func (m *Module) handleFreezeDuration(c telebot.Context) error {
 	}
 	expiresAt := time.Now().UTC().Add(d)
 
-	scopeLabel := scope
+	var scopeLabel string
 	if scope == "all" {
 		scopeLabel = "🌍 All Clusters"
 	} else {
