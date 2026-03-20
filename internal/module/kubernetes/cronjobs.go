@@ -130,7 +130,7 @@ func (m *Module) sendCronJobList(c telebot.Context, clusterName, namespace strin
 
 		// Last successful time
 		if cj.Status.LastSuccessfulTime != nil {
-			sb.WriteString(fmt.Sprintf("   Last Success: %s\n", cj.Status.LastSuccessfulTime.Time.Format("2006-01-02 15:04:05")))
+			sb.WriteString(fmt.Sprintf("   Last Success: %s\n", cj.Status.LastSuccessfulTime.Format("2006-01-02 15:04:05")))
 		}
 
 		// Active jobs count

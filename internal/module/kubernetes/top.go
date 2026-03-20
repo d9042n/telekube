@@ -352,11 +352,12 @@ func (m *Module) sendNodeTop(c telebot.Context) error {
 		ready := "Unknown"
 		for _, cond := range node.Status.Conditions {
 			if cond.Type == "Ready" {
-				if cond.Status == "True" {
+				switch cond.Status {
+				case "True":
 					ready = "Ready"
-				} else if cond.Status == "Unknown" {
+				case "Unknown":
 					ready = "Unknown"
-				} else {
+				default:
 					ready = "NotReady"
 				}
 			}

@@ -167,7 +167,7 @@ func (m *Module) fetchAndSendLogs(c telebot.Context, podName, namespace, cluster
 		}
 		return c.Send(errMsg)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	// Read logs
 	buf := make([]byte, 4096*4)

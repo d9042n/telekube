@@ -20,7 +20,7 @@ func TestUserContext_SetAndGet_SwitchCluster(t *testing.T) {
 		{Name: "prod", Default: true},
 		{Name: "staging"},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	uc := NewUserContext(mgr)
 
@@ -39,7 +39,7 @@ func TestUserContext_UnknownUser_FallsBackToDefault(t *testing.T) {
 	mgr := NewManager([]config.ClusterConfig{
 		{Name: "alpha", Default: true},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	uc := NewUserContext(mgr)
 	assert.Equal(t, "alpha", uc.GetCluster(999))
@@ -50,7 +50,7 @@ func TestUserContext_NoDefault_ReturnsEmpty(t *testing.T) {
 
 	// Manager with no configs — no default.
 	mgr := NewManager(nil, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	uc := NewUserContext(mgr)
 	assert.Equal(t, "", uc.GetCluster(111))
@@ -62,7 +62,7 @@ func TestUserContext_ConcurrentAccess_NoRace(t *testing.T) {
 	mgr := NewManager([]config.ClusterConfig{
 		{Name: "prod", Default: true},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	uc := NewUserContext(mgr)
 
@@ -85,7 +85,7 @@ func TestUserContext_MultipleUsers_Independent(t *testing.T) {
 		{Name: "prod", Default: true},
 		{Name: "staging"},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	uc := NewUserContext(mgr)
 
@@ -102,7 +102,7 @@ func TestManager_NilConfigs_EmptyList(t *testing.T) {
 	t.Parallel()
 
 	mgr := NewManager(nil, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	assert.Empty(t, mgr.List())
 }
@@ -113,7 +113,7 @@ func TestManager_Get_NotFound_ReturnsError(t *testing.T) {
 	mgr := NewManager([]config.ClusterConfig{
 		{Name: "prod"},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	_, err := mgr.Get("nonexistent")
 	assert.Error(t, err)
@@ -124,7 +124,7 @@ func TestManager_GetDefault_NoClusters_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	mgr := NewManager(nil, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	_, err := mgr.GetDefault()
 	assert.Error(t, err)
@@ -138,7 +138,7 @@ func TestManager_GetDefault_FirstClusterIsDefault(t *testing.T) {
 		{Name: "alpha"},
 		{Name: "beta"},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	info, err := mgr.GetDefault()
 	require.NoError(t, err)
@@ -153,7 +153,7 @@ func TestManager_ExplicitDefault_Honored(t *testing.T) {
 		{Name: "alpha"},
 		{Name: "beta", Default: true},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	info, err := mgr.GetDefault()
 	require.NoError(t, err)
@@ -166,7 +166,7 @@ func TestManager_DisplayName_FallsBackToName(t *testing.T) {
 	mgr := NewManager([]config.ClusterConfig{
 		{Name: "prod"},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	info, err := mgr.Get("prod")
 	require.NoError(t, err)
@@ -179,7 +179,7 @@ func TestManager_DisplayName_CustomSet(t *testing.T) {
 	mgr := NewManager([]config.ClusterConfig{
 		{Name: "prod", DisplayName: "Production Cluster"},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	info, err := mgr.Get("prod")
 	require.NoError(t, err)
@@ -190,7 +190,7 @@ func TestManager_ClientSet_NotFound_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	mgr := NewManager(nil, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	_, err := mgr.ClientSet("ghost")
 	assert.Error(t, err)
@@ -200,7 +200,7 @@ func TestManager_MetricsClient_NotFound_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	mgr := NewManager(nil, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	_, err := mgr.MetricsClient("ghost")
 	assert.Error(t, err)
@@ -210,7 +210,7 @@ func TestManager_DynamicClient_NotFound_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	mgr := NewManager(nil, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	_, err := mgr.DynamicClient("ghost")
 	assert.Error(t, err)
@@ -233,7 +233,7 @@ func TestManager_HealthCheck_NoClients_ReturnsUnknown(t *testing.T) {
 	mgr := NewManager([]config.ClusterConfig{
 		{Name: "prod"},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	statuses := mgr.HealthCheck(t.Context())
 	assert.Equal(t, entity.HealthStatusUnknown, statuses["prod"])
@@ -245,7 +245,7 @@ func TestManager_InitialStatus_IsUnknown(t *testing.T) {
 	mgr := NewManager([]config.ClusterConfig{
 		{Name: "staging"},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	info, err := mgr.Get("staging")
 	require.NoError(t, err)
@@ -260,7 +260,7 @@ func TestManager_List_ReturnsAllClusters(t *testing.T) {
 		{Name: "b"},
 		{Name: "c"},
 	}, zap.NewNop())
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	list := mgr.List()
 	assert.Len(t, list, 3)

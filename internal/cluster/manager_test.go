@@ -28,7 +28,7 @@ func TestNewManager_WithConfigs(t *testing.T) {
 	}
 
 	m := NewManager(configs, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	clusters := m.List()
 	assert.Len(t, clusters, 2)
@@ -42,7 +42,7 @@ func TestManager_Get(t *testing.T) {
 	}
 
 	m := NewManager(configs, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	info, err := m.Get("prod")
 	require.NoError(t, err)
@@ -55,7 +55,7 @@ func TestManager_Get_NotFound(t *testing.T) {
 	t.Parallel()
 
 	m := NewManager(nil, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	_, err := m.Get("nonexistent")
 	assert.Error(t, err)
@@ -70,7 +70,7 @@ func TestManager_GetDefault(t *testing.T) {
 	}
 
 	m := NewManager(configs, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	info, err := m.GetDefault()
 	require.NoError(t, err)
@@ -86,7 +86,7 @@ func TestManager_GetDefault_FallbackToFirst(t *testing.T) {
 	}
 
 	m := NewManager(configs, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	info, err := m.GetDefault()
 	require.NoError(t, err)
@@ -98,7 +98,7 @@ func TestManager_GetDefault_NoConfigs(t *testing.T) {
 	t.Parallel()
 
 	m := NewManager(nil, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	_, err := m.GetDefault()
 	assert.Error(t, err)
@@ -112,7 +112,7 @@ func TestManager_DisplayName_Fallback(t *testing.T) {
 	}
 
 	m := NewManager(configs, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	info, err := m.Get("prod")
 	require.NoError(t, err)
@@ -127,7 +127,7 @@ func TestManager_HealthCheck_UnknownWithoutClients(t *testing.T) {
 	}
 
 	m := NewManager(configs, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	statuses := m.HealthCheck(context.Background())
 	assert.Equal(t, entity.HealthStatusUnknown, statuses["test"])
@@ -137,7 +137,7 @@ func TestManager_ClientSet_InvalidCluster(t *testing.T) {
 	t.Parallel()
 
 	m := NewManager(nil, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	_, err := m.ClientSet("nonexistent")
 	assert.Error(t, err)
@@ -147,7 +147,7 @@ func TestManager_MetricsClient_InvalidCluster(t *testing.T) {
 	t.Parallel()
 
 	m := NewManager(nil, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	_, err := m.MetricsClient("nonexistent")
 	assert.Error(t, err)
@@ -157,7 +157,7 @@ func TestManager_DynamicClient_InvalidCluster(t *testing.T) {
 	t.Parallel()
 
 	m := NewManager(nil, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	_, err := m.DynamicClient("nonexistent")
 	assert.Error(t, err)
@@ -171,7 +171,7 @@ func TestUserContext_Default(t *testing.T) {
 	}
 
 	m := NewManager(configs, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	uc := NewUserContext(m)
 
@@ -189,7 +189,7 @@ func TestUserContext_SetAndGet(t *testing.T) {
 	}
 
 	m := NewManager(configs, zap.NewNop())
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	uc := NewUserContext(m)
 

@@ -107,7 +107,7 @@ func (s *Silencer) Silence(labels map[string]string, duration time.Duration, cre
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		b, _ := io.ReadAll(resp.Body)
@@ -176,7 +176,7 @@ func (m *Module) WebhookHandler() http.Handler {
 		}
 
 		// 2. Parse payload
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 		var payload AlertManagerPayload
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			http.Error(w, "invalid JSON", http.StatusBadRequest)

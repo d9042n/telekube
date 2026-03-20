@@ -131,7 +131,7 @@ func TestAuditLogger_Query_DelegatesToRepo(t *testing.T) {
 		},
 	}
 	logger := NewLogger(repo, zap.NewNop())
-	defer logger.Close()
+	defer func() { _ = logger.Close() }()
 
 	entries, total, err := logger.Query(context.Background(), storage.AuditFilter{Page: 1, PageSize: 10})
 	require.NoError(t, err)
@@ -149,7 +149,7 @@ func TestAuditLogger_Query_RepoError_Propagated(t *testing.T) {
 		},
 	}
 	logger := NewLogger(repo, zap.NewNop())
-	defer logger.Close()
+	defer func() { _ = logger.Close() }()
 
 	_, _, err := logger.Query(context.Background(), storage.AuditFilter{})
 	assert.Error(t, err)
@@ -186,7 +186,7 @@ func TestAuditLogger_Flush_EmptyQueue_NoError(t *testing.T) {
 
 	repo := &fakeAuditRepo{}
 	logger := NewLogger(repo, zap.NewNop())
-	defer logger.Close()
+	defer func() { _ = logger.Close() }()
 
 	// Flush on empty queue should succeed.
 	err := logger.Flush(context.Background())

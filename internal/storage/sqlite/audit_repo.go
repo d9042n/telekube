@@ -101,7 +101,7 @@ func (r *auditRepo) List(ctx context.Context, filter storage.AuditFilter) ([]ent
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying audit entries: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var entries []entity.AuditEntry
 	for rows.Next() {

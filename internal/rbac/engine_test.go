@@ -81,7 +81,7 @@ func (m *mockRBACRepo) GetUserRoleBindings(_ context.Context, userID int64) ([]e
 func (m *mockRBACRepo) DeleteRoleBinding(_ context.Context, userID int64, roleName string) error {
 	filtered := m.bindings[:0]
 	for _, b := range m.bindings {
-		if !(b.UserID == userID && b.RoleName == roleName) {
+		if b.UserID != userID || b.RoleName != roleName {
 			filtered = append(filtered, b)
 		}
 	}

@@ -32,8 +32,8 @@ func Start(clusterMgr cluster.Manager, userCtx *cluster.UserContext, rbacEngine 
 
 		var sb strings.Builder
 		sb.WriteString("🚀 *Welcome to Telekube!*\n\n")
-		sb.WriteString(fmt.Sprintf("👤 User: %s\n", user.DisplayName))
-		sb.WriteString(fmt.Sprintf("🔑 Role: %s\n", role))
+		fmt.Fprintf(&sb, "👤 User: %s\n", user.DisplayName)
+		fmt.Fprintf(&sb, "🔑 Role: %s\n", role)
 		sb.WriteString(fmt.Sprintf("🌐 Current cluster: %s\n\n", currentCluster))
 		sb.WriteString("Select your cluster:")
 

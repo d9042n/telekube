@@ -117,7 +117,7 @@ func (c *httpClient) doJSON(ctx context.Context, method, path string, body, out 
 			)
 			continue
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		respBody, _ := io.ReadAll(resp.Body)
 

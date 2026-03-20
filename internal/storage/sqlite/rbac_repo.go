@@ -99,7 +99,7 @@ func (r *rbacRepo) ListRoles(ctx context.Context) ([]entity.Role, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var out []entity.Role
 	for rows.Next() {
 		var role entity.Role

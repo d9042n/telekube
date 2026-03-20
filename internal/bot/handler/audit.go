@@ -73,7 +73,7 @@ func AuditLog(auditLogger audit.Logger, rbacEngine rbac.Engine) telebot.HandlerF
 				sb.WriteString(line + "\n")
 			}
 
-			sb.WriteString(fmt.Sprintf("\nShowing %d of %d entries", len(entries), total))
+			fmt.Fprintf(&sb, "\nShowing %d of %d entries", len(entries), total)
 		}
 
 		return c.Send(sb.String(), telebot.ModeMarkdown)

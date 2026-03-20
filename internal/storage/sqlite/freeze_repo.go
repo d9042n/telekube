@@ -70,7 +70,7 @@ func (r *freezeRepo) List(ctx context.Context, limit int) ([]entity.DeploymentFr
 	if err != nil {
 		return nil, fmt.Errorf("listing deployment freezes: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var freezes []entity.DeploymentFreeze
 	for rows.Next() {

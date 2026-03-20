@@ -110,11 +110,12 @@ func (m *BotModule) recordDecision(c telebot.Context, requestID, decision, comme
 // formatResolutionMessage formats the resolved approval message.
 func formatResolutionMessage(req *entity.ApprovalRequest) string {
 	emoji := "✅ APPROVED"
-	if req.Status == entity.ApprovalRejected {
+	switch req.Status {
+	case entity.ApprovalRejected:
 		emoji = "❌ REJECTED"
-	} else if req.Status == entity.ApprovalCancelled {
+	case entity.ApprovalCancelled:
 		emoji = "🚫 CANCELLED"
-	} else if req.Status == entity.ApprovalExpired {
+	case entity.ApprovalExpired:
 		emoji = "⏰ EXPIRED"
 	}
 
