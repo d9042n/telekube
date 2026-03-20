@@ -2,10 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/d9042n/telekube/internal/entity"
+	"github.com/d9042n/telekube/internal/storage"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,6 +24,9 @@ func (r *UserRepo) GetByTelegramID(ctx context.Context, telegramID int64) (*enti
 		 FROM users WHERE telegram_id = $1`, telegramID,
 	).Scan(&u.TelegramID, &u.Username, &u.DisplayName, &u.Role, &u.IsActive, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, storage.ErrNotFound
+		}
 		return nil, fmt.Errorf("get user %d: %w", telegramID, err)
 	}
 	return &u, nil

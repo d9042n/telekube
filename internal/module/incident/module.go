@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/d9042n/telekube/internal/bot/keyboard"
 	"github.com/d9042n/telekube/internal/cluster"
 	"github.com/d9042n/telekube/internal/entity"
 	"github.com/d9042n/telekube/internal/module"
@@ -162,11 +163,12 @@ type Module struct {
 	clusters cluster.Manager
 	storage  storage.Storage
 	logger   *zap.Logger
+	cbs      *keyboard.CallbackStore
 }
 
 // NewModule creates a new incident module.
 func NewModule(clusters cluster.Manager, store storage.Storage, logger *zap.Logger) *Module {
-	return &Module{clusters: clusters, storage: store, logger: logger}
+	return &Module{clusters: clusters, storage: store, logger: logger, cbs: keyboard.NewCallbackStore()}
 }
 
 func (m *Module) Name() string        { return "incident" }
@@ -174,8 +176,23 @@ func (m *Module) Description() string { return "Incident timeline builder" }
 
 func (m *Module) Register(bot *telebot.Bot, _ *telebot.Group) {
 	bot.Handle("/incident", m.handleIncident)
-	bot.Handle(&telebot.Btn{Unique: "inc_ns_select"}, m.handleNsSelect)
-	bot.Handle(&telebot.Btn{Unique: "inc_window_select"}, m.handleWindowSelect)
+	bot.Handle(&telebot.Btn{Unique: "inc_ns_select"}, m.resolve(m.handleNsSelect))
+	bot.Handle(&telebot.Btn{Unique: "inc_window_select"}, m.resolve(m.handleWindowSelect))
+}
+
+// resolve is middleware that resolves shortened callback data.
+func (m *Module) resolve(handler telebot.HandlerFunc) telebot.HandlerFunc {
+	return func(c telebot.Context) error {
+		if cb := c.Callback(); cb != nil && cb.Data != "" {
+			cb.Data = m.cbs.Resolve(cb.Data)
+		}
+		return handler(c)
+	}
+}
+
+// sd stores callback data, returning short key if too long.
+func (m *Module) sd(data string) string {
+	return m.cbs.Store(data)
 }
 
 func (m *Module) Start(_ context.Context) error {
@@ -206,14 +223,63 @@ func (m *Module) handleIncident(c telebot.Context) error {
 	cl := clusters[0]
 
 	menu := &telebot.ReplyMarkup{}
-	menu.Inline(
-		menu.Row(
-			menu.Data("production", "inc_ns_select", cl.Name+"|production"),
-			menu.Data("staging", "inc_ns_select", cl.Name+"|staging"),
-		),
-		menu.Row(menu.Data("All Namespaces", "inc_ns_select", cl.Name+"|")),
-	)
+	var rows []telebot.Row
+
+	// Dynamically list namespaces from the cluster
+	namespaces := m.listClusterNamespaces(cl.Name)
+	var nsRow []telebot.Btn
+	for _, ns := range namespaces {
+		nsRow = append(nsRow, menu.Data(ns, "inc_ns_select", m.sd(cl.Name+"|"+ns)))
+		if len(nsRow) == 2 {
+			rows = append(rows, menu.Row(nsRow...))
+			nsRow = nil
+		}
+	}
+	if len(nsRow) > 0 {
+		rows = append(rows, menu.Row(nsRow...))
+	}
+	rows = append(rows, menu.Row(menu.Data("All Namespaces", "inc_ns_select", m.sd(cl.Name+"|"))))
+	menu.Inline(rows...)
+
 	return c.Send("🚨 Incident Timeline Builder\n\nSelect namespace:", menu)
+}
+
+// listClusterNamespaces dynamically queries namespaces from a cluster.
+// Returns a limited set for the UI (max 8 namespaces excluding system ones).
+func (m *Module) listClusterNamespaces(clusterName string) []string {
+	cs, err := m.clusters.ClientSet(clusterName)
+	if err != nil {
+		return []string{"production", "staging"}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	nsList, err := cs.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return []string{"production", "staging"}
+	}
+
+	exclude := map[string]bool{
+		"kube-system":    true,
+		"kube-public":    true,
+		"kube-node-lease": true,
+	}
+
+	names := make([]string, 0, len(nsList.Items))
+	for _, ns := range nsList.Items {
+		if exclude[ns.Name] {
+			continue
+		}
+		names = append(names, ns.Name)
+		if len(names) >= 8 {
+			break
+		}
+	}
+	if len(names) == 0 {
+		return []string{"default"}
+	}
+	return names
 }
 
 func (m *Module) handleNsSelect(c telebot.Context) error {
@@ -229,12 +295,12 @@ func (m *Module) handleNsSelect(c telebot.Context) error {
 	base := fmt.Sprintf("%s|%s", clusterName, ns)
 	menu.Inline(
 		menu.Row(
-			menu.Data("⏱️ Last 15min", "inc_window_select", base+"|15m"),
-			menu.Data("⏱️ Last 30min", "inc_window_select", base+"|30m"),
+			menu.Data("⏱️ Last 15min", "inc_window_select", m.sd(base+"|15m")),
+			menu.Data("⏱️ Last 30min", "inc_window_select", m.sd(base+"|30m")),
 		),
 		menu.Row(
-			menu.Data("⏱️ Last 1h", "inc_window_select", base+"|1h"),
-			menu.Data("⏱️ Last 4h", "inc_window_select", base+"|4h"),
+			menu.Data("⏱️ Last 1h", "inc_window_select", m.sd(base+"|1h")),
+			menu.Data("⏱️ Last 4h", "inc_window_select", m.sd(base+"|4h")),
 		),
 	)
 	return c.Edit("Select time window:", menu)
@@ -273,8 +339,8 @@ func (m *Module) handleWindowSelect(c telebot.Context) error {
 	text := formatTimeline(tl)
 	menu := &telebot.ReplyMarkup{}
 	menu.Inline(menu.Row(
-		menu.Data("🔄 Refresh", "inc_window_select", data),
-		menu.Data("◀️ Back", "inc_ns_select", clusterName+"|"+ns),
+		menu.Data("🔄 Refresh", "inc_window_select", m.sd(data)),
+		menu.Data("◀️ Back", "inc_ns_select", m.sd(clusterName+"|"+ns)),
 	))
 
 	return c.Edit(text, menu)

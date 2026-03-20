@@ -75,11 +75,11 @@ func (m *Module) handleLogs(c telebot.Context) error {
 		menu := &telebot.ReplyMarkup{}
 		var rows []telebot.Row
 		for _, container := range pod.Spec.Containers {
-			data := fmt.Sprintf("%s|%s|%s|%s", podName, namespace, clusterName, container.Name)
+			data := m.kb.StoreData(fmt.Sprintf("%s|%s|%s|%s", podName, namespace, clusterName, container.Name))
 			btn := menu.Data(container.Name, "k8s_logs_container", data)
 			rows = append(rows, menu.Row(btn))
 		}
-		btnBack := menu.Data("◀️ Back", "k8s_pod_detail", fmt.Sprintf("%s|%s|%s", podName, namespace, clusterName))
+		btnBack := menu.Data("◀️ Back", "k8s_pod_detail", m.kb.StoreData(fmt.Sprintf("%s|%s|%s", podName, namespace, clusterName)))
 		rows = append(rows, menu.Row(btnBack))
 		menu.Inline(rows...)
 

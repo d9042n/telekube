@@ -87,7 +87,7 @@ func (m *Module) sendQuotaView(c telebot.Context, clusterName, namespace string)
 		text := fmt.Sprintf("📊 *Resource Quotas — %s* (cluster: %s)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nNo resource quotas configured.", namespace, clusterName)
 
 		menu := &telebot.ReplyMarkup{}
-		data := fmt.Sprintf("%s|%s", namespace, clusterName)
+		data := m.sd(fmt.Sprintf("%s|%s", namespace, clusterName))
 		btnRefresh := menu.Data("🔄 Refresh", "k8s_quota_refresh", data)
 		btnBack := menu.Data("◀️ Back", "k8s_quota_back", clusterName)
 		menu.Inline(menu.Row(btnRefresh, btnBack))
@@ -171,7 +171,7 @@ func (m *Module) sendQuotaView(c telebot.Context, clusterName, namespace string)
 	}
 
 	menu := &telebot.ReplyMarkup{}
-	data := fmt.Sprintf("%s|%s", namespace, clusterName)
+	data := m.sd(fmt.Sprintf("%s|%s", namespace, clusterName))
 	btnRefresh := menu.Data("🔄 Refresh", "k8s_quota_refresh", data)
 	btnBack := menu.Data("◀️ Back", "k8s_quota_back", clusterName)
 	menu.Inline(menu.Row(btnRefresh, btnBack))

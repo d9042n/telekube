@@ -131,23 +131,29 @@ func (m *Module) sendPodList(c telebot.Context, clusterName, namespace string, p
 		end = len(podList.Items)
 	}
 	for _, pod := range podList.Items[start:end] {
-		data := fmt.Sprintf("%s|%s|%s", pod.Name, pod.Namespace, clusterName)
+		podData := m.kb.StoreData(fmt.Sprintf("%s|%s|%s", pod.Name, pod.Namespace, clusterName))
+		// Truncate long pod names: keep tail (hash suffix is the unique part)
+		displayName := pod.Name
+		const maxPodBtnText = 45
+		if len(displayName) > maxPodBtnText {
+			displayName = "…" + displayName[len(displayName)-(maxPodBtnText-1):]
+		}
 		btn := menu.Data(
-			fmt.Sprintf("%s %s", tfmt.StatusEmoji(podStatus(&pod)), pod.Name),
+			fmt.Sprintf("%s %s", tfmt.StatusEmoji(podStatus(&pod)), displayName),
 			"k8s_pod_detail",
-			data,
+			podData,
 		)
 		rows = append(rows, menu.Row(btn))
 	}
 
 	// Action buttons
 	var actionBtns []telebot.Btn
-	actionBtns = append(actionBtns, menu.Data("🔄 Refresh", "k8s_pods_refresh", fmt.Sprintf("%s|%s|%d", namespace, clusterName, page)))
+	actionBtns = append(actionBtns, menu.Data("🔄 Refresh", "k8s_pods_refresh", m.kb.StoreData(fmt.Sprintf("%s|%s|%d", namespace, clusterName, page))))
 	if paginator.Current > 1 {
-		actionBtns = append(actionBtns, menu.Data("◀️ Prev", "k8s_pods_page", fmt.Sprintf("%s|%s|%d", namespace, clusterName, page-1)))
+		actionBtns = append(actionBtns, menu.Data("◀️ Prev", "k8s_pods_page", m.kb.StoreData(fmt.Sprintf("%s|%s|%d", namespace, clusterName, page-1))))
 	}
 	if paginator.Current < paginator.TotalPages() {
-		actionBtns = append(actionBtns, menu.Data("▶️ Next", "k8s_pods_page", fmt.Sprintf("%s|%s|%d", namespace, clusterName, page+1)))
+		actionBtns = append(actionBtns, menu.Data("▶️ Next", "k8s_pods_page", m.kb.StoreData(fmt.Sprintf("%s|%s|%d", namespace, clusterName, page+1))))
 	}
 	rows = append(rows, menu.Row(actionBtns...))
 

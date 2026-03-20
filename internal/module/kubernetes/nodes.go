@@ -93,30 +93,35 @@ func (m *Module) sendNodeList(c telebot.Context) error {
 			podCount = len(pods.Items)
 		}
 
-		// Try to get metrics
-		cpuStr := "--"
-		ramStr := "--"
+		// Node capacity (always available)
+		cpuCap := node.Status.Allocatable.Cpu().MilliValue()
+		ramCap := node.Status.Allocatable.Memory().Value()
+		diskCap := node.Status.Allocatable.StorageEphemeral().Value()
+
+		// Try to get live metrics
+		cpuStr := fmt.Sprintf("%dm", cpuCap)
+		ramStr := formatBytes(ramCap)
+		diskStr := formatBytes(diskCap)
+
 		if metricsClient != nil {
 			nm, nmErr := metricsClient.MetricsV1beta1().NodeMetricses().Get(ctx, node.Name, metav1.GetOptions{})
 			if nmErr == nil {
 				cpuTotal := nm.Usage.Cpu().MilliValue()
-				cpuCap := node.Status.Allocatable.Cpu().MilliValue()
 				ramTotal := nm.Usage.Memory().Value()
-				ramCap := node.Status.Allocatable.Memory().Value()
 
 				if cpuCap > 0 {
-					cpuStr = fmt.Sprintf("%d%%", int(float64(cpuTotal)/float64(cpuCap)*100))
+					cpuStr = fmt.Sprintf("%d%% (%dm/%dm)", int(float64(cpuTotal)/float64(cpuCap)*100), cpuTotal, cpuCap)
 				}
 				if ramCap > 0 {
-					ramStr = fmt.Sprintf("%d%%", int(float64(ramTotal)/float64(ramCap)*100))
+					ramStr = fmt.Sprintf("%d%% (%s/%s)", int(float64(ramTotal)/float64(ramCap)*100), formatBytes(ramTotal), formatBytes(ramCap))
 				}
 			}
 		}
 
-		sb.WriteString(fmt.Sprintf("%s `%s`  %s  %d pods  CPU: %s  RAM: %s\n",
-			statusEmoji, node.Name, statusText, podCount, cpuStr, ramStr))
+		sb.WriteString(fmt.Sprintf("%s `%s`  %s  %d pods\n   CPU: %s  RAM: %s  Disk: %s\n\n",
+			statusEmoji, node.Name, statusText, podCount, cpuStr, ramStr, diskStr))
 
-		data := fmt.Sprintf("%s|%s", node.Name, clusterName)
+		data := m.sd(fmt.Sprintf("%s|%s", node.Name, clusterName))
 		btn := menu.Data(
 			fmt.Sprintf("%s %s", statusEmoji, node.Name),
 			"k8s_node_detail",
@@ -183,27 +188,43 @@ func (m *Module) handleNodeDetail(c telebot.Context) error {
 	sb.WriteString(fmt.Sprintf("Status:     %s %s\n", statusEmoji, statusText))
 	sb.WriteString(fmt.Sprintf("Pods:       %d\n", podCount))
 
-	// Resource info
+	// Resource capacity (always available from node status)
 	cpuCap := node.Status.Allocatable.Cpu().MilliValue()
 	ramCap := node.Status.Allocatable.Memory().Value()
+	diskCap := node.Status.Allocatable.StorageEphemeral().Value()
 
-	// Try node metrics
+	// Try node metrics for live usage
 	metricsClient, _ := m.cluster.MetricsClient(clusterName)
+	hasMetrics := false
 	if metricsClient != nil {
 		nm, nmErr := metricsClient.MetricsV1beta1().NodeMetricses().Get(ctx, nodeName, metav1.GetOptions{})
 		if nmErr == nil {
+			hasMetrics = true
 			cpuUsed := nm.Usage.Cpu().MilliValue()
 			ramUsed := nm.Usage.Memory().Value()
 
 			if cpuCap > 0 {
 				cpuRatio := float64(cpuUsed) / float64(cpuCap)
-				sb.WriteString(fmt.Sprintf("CPU:        %dm / %dm (%d%%)\n", cpuUsed, cpuCap, int(cpuRatio*100)))
+				sb.WriteString(fmt.Sprintf("CPU:        %s %d%%  %dm / %dm\n",
+					renderBar(cpuUsed, cpuCap, barWidth), int(cpuRatio*100), cpuUsed, cpuCap))
 			}
 			if ramCap > 0 {
 				ramRatio := float64(ramUsed) / float64(ramCap)
-				sb.WriteString(fmt.Sprintf("RAM:        %s / %s (%d%%)\n", formatBytes(ramUsed), formatBytes(ramCap), int(ramRatio*100)))
+				sb.WriteString(fmt.Sprintf("RAM:        %s %d%%  %s / %s\n",
+					renderBar(ramUsed, ramCap, barWidth), int(ramRatio*100), formatBytes(ramUsed), formatBytes(ramCap)))
 			}
 		}
+	}
+
+	// Fallback: show capacity only if no metrics available
+	if !hasMetrics {
+		sb.WriteString(fmt.Sprintf("CPU:        %dm (allocatable)\n", cpuCap))
+		sb.WriteString(fmt.Sprintf("RAM:        %s (allocatable)\n", formatBytes(ramCap)))
+	}
+
+	// Disk info (always from capacity — live disk metrics not in metrics-server)
+	if diskCap > 0 {
+		sb.WriteString(fmt.Sprintf("Disk:       %s (allocatable)\n", formatBytes(diskCap)))
 	}
 
 	// Node metadata
@@ -212,7 +233,7 @@ func (m *Module) handleNodeDetail(c telebot.Context) error {
 
 	// Buttons
 	menu := &telebot.ReplyMarkup{}
-	data := fmt.Sprintf("%s|%s", nodeName, clusterName)
+	data := m.sd(fmt.Sprintf("%s|%s", nodeName, clusterName))
 
 	var actionBtns []telebot.Btn
 
@@ -265,7 +286,7 @@ func (m *Module) handleNodeCordon(c telebot.Context) error {
 		nodeName, clusterName)
 
 	menu := &telebot.ReplyMarkup{}
-	data := c.Callback().Data
+	data := m.sd(c.Callback().Data)
 	btnConfirm := menu.Data("✅ Confirm", "k8s_node_cordon_confirm", data)
 	btnCancel := menu.Data("❌ Cancel", "k8s_node_detail", data)
 	menu.Inline(menu.Row(btnConfirm, btnCancel))
@@ -292,7 +313,7 @@ func (m *Module) handleNodeUncordon(c telebot.Context) error {
 		nodeName, clusterName)
 
 	menu := &telebot.ReplyMarkup{}
-	data := c.Callback().Data
+	data := m.sd(c.Callback().Data)
 	btnConfirm := menu.Data("✅ Confirm", "k8s_node_uncordon_confirm", data)
 	btnCancel := menu.Data("❌ Cancel", "k8s_node_detail", data)
 	menu.Inline(menu.Row(btnConfirm, btnCancel))
@@ -379,11 +400,11 @@ func (m *Module) performCordon(c telebot.Context, cordon bool) error {
 		OccurredAt: time.Now().UTC(),
 	})
 
-	text := fmt.Sprintf("✅ Node `%s` %s\n\nTriggered by: @%s at %s",
-		nodeName, statusText, user.Username, time.Now().UTC().Format("2006-01-02 15:04:05"))
+	text := fmt.Sprintf("✅ Node `%s` %s\n\nTriggered by: %s at %s",
+		nodeName, statusText, displayName(user), time.Now().UTC().Format("2006-01-02 15:04:05"))
 
 	menu := &telebot.ReplyMarkup{}
-	data := fmt.Sprintf("%s|%s", nodeName, clusterName)
+	data := m.sd(fmt.Sprintf("%s|%s", nodeName, clusterName))
 	btnDetail := menu.Data("🖥️ Node Details", "k8s_node_detail", data)
 	btnList := menu.Data("◀️ All Nodes", "k8s_nodes_back", clusterName)
 	menu.Inline(menu.Row(btnDetail, btnList))
@@ -426,7 +447,7 @@ func (m *Module) handleNodeDrain(c telebot.Context) error {
 		nodeName, evictableCount, drainGraceSecs, clusterName)
 
 	menu := &telebot.ReplyMarkup{}
-	data := c.Callback().Data
+	data := m.sd(c.Callback().Data)
 	btnConfirm := menu.Data("✅ Confirm Drain", "k8s_node_drain_confirm", data)
 	btnCancel := menu.Data("❌ Cancel", "k8s_node_detail", data)
 	menu.Inline(menu.Row(btnConfirm, btnCancel))
@@ -593,12 +614,12 @@ func (m *Module) performDrain(c telebot.Context, user *entity.User, nodeName, cl
 		OccurredAt: time.Now().UTC(),
 	})
 
-	finalText := fmt.Sprintf("%s Node `%s` drained\n\n✅ Evicted: %d\n⏭️ Skipped (DaemonSet): %d\n❌ Failed: %d\n\nTriggered by: @%s at %s",
+	finalText := fmt.Sprintf("%s Node `%s` drained\n\n✅ Evicted: %d\n⏭️ Skipped (DaemonSet): %d\n❌ Failed: %d\n\nTriggered by: %s at %s",
 		statusEmoji, nodeName, evicted, skipped, failed,
-		user.Username, time.Now().UTC().Format("2006-01-02 15:04:05"))
+		displayName(user), time.Now().UTC().Format("2006-01-02 15:04:05"))
 
 	menu := &telebot.ReplyMarkup{}
-	data := fmt.Sprintf("%s|%s", nodeName, clusterName)
+	data := m.sd(fmt.Sprintf("%s|%s", nodeName, clusterName))
 	btnDetail := menu.Data("🖥️ Node Details", "k8s_node_detail", data)
 	btnList := menu.Data("◀️ All Nodes", "k8s_nodes_back", clusterName)
 	menu.Inline(menu.Row(btnDetail, btnList))
@@ -684,7 +705,7 @@ func (m *Module) handleNodeTopPods(c telebot.Context) error {
 	}
 
 	menu := &telebot.ReplyMarkup{}
-	data := fmt.Sprintf("%s|%s", nodeName, clusterName)
+	data := m.sd(fmt.Sprintf("%s|%s", nodeName, clusterName))
 	btnBack := menu.Data("◀️ Back", "k8s_node_detail", data)
 	menu.Inline(menu.Row(btnBack))
 

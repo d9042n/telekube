@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/d9042n/telekube/internal/audit"
+	"github.com/d9042n/telekube/internal/bot/keyboard"
 	"github.com/d9042n/telekube/internal/entity"
 	"github.com/d9042n/telekube/internal/module"
 	"github.com/d9042n/telekube/internal/rbac"
@@ -15,6 +16,8 @@ import (
 	"gopkg.in/telebot.v3"
 	helmrelease "helm.sh/helm/v3/pkg/release"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sClient "k8s.io/client-go/kubernetes"
 	k8s "k8s.io/client-go/rest"
 )
 
@@ -30,6 +33,7 @@ type Module struct {
 	rbac     rbac.Engine
 	audit    audit.Logger
 	logger   *zap.Logger
+	cbs      *keyboard.CallbackStore
 
 	// newClient builds a ReleaseClient for a given cluster REST config +
 	// namespace. Defaults to DefaultClientFactory; overridden in tests.
@@ -43,6 +47,7 @@ func NewModule(clusters []ClusterClient, rbacEngine rbac.Engine, auditLogger aud
 		rbac:      rbacEngine,
 		audit:     auditLogger,
 		logger:    logger,
+		cbs:       keyboard.NewCallbackStore(),
 		newClient: DefaultClientFactory,
 	}
 }
@@ -65,12 +70,27 @@ func (m *Module) Description() string { return "Helm release management" }
 
 func (m *Module) Register(bot *telebot.Bot, _ *telebot.Group) {
 	bot.Handle("/helm", m.handleHelm)
-	bot.Handle(&telebot.Btn{Unique: "helm_ns_select"}, m.handleNamespaceSelect)
-	bot.Handle(&telebot.Btn{Unique: "helm_release_detail"}, m.handleReleaseDetail)
-	bot.Handle(&telebot.Btn{Unique: "helm_rollback_select"}, m.handleRollbackSelect)
-	bot.Handle(&telebot.Btn{Unique: "helm_rollback_confirm"}, m.handleRollbackConfirm)
+	bot.Handle(&telebot.Btn{Unique: "helm_ns_select"}, m.resolve(m.handleNamespaceSelect))
+	bot.Handle(&telebot.Btn{Unique: "helm_release_detail"}, m.resolve(m.handleReleaseDetail))
+	bot.Handle(&telebot.Btn{Unique: "helm_rollback_select"}, m.resolve(m.handleRollbackSelect))
+	bot.Handle(&telebot.Btn{Unique: "helm_rollback_confirm"}, m.resolve(m.handleRollbackConfirm))
 	bot.Handle(&telebot.Btn{Unique: "helm_rollback_cancel"}, m.handleRollbackCancel)
-	bot.Handle(&telebot.Btn{Unique: "helm_refresh"}, m.handleRefresh)
+	bot.Handle(&telebot.Btn{Unique: "helm_refresh"}, m.resolve(m.handleRefresh))
+}
+
+// resolve is middleware that resolves shortened callback data back to full strings.
+func (m *Module) resolve(handler telebot.HandlerFunc) telebot.HandlerFunc {
+	return func(c telebot.Context) error {
+		if cb := c.Callback(); cb != nil && cb.Data != "" {
+			cb.Data = m.cbs.Resolve(cb.Data)
+		}
+		return handler(c)
+	}
+}
+
+// sd stores callback data, returning a short hash if it exceeds safe size.
+func (m *Module) sd(data string) string {
+	return m.cbs.Store(data)
 }
 
 func (m *Module) Start(_ context.Context) error {
@@ -106,15 +126,49 @@ func (m *Module) handleHelm(c telebot.Context) error {
 	// Use first cluster.
 	cluster := m.clusters[0]
 	menu := &telebot.ReplyMarkup{}
-	rows := []telebot.Row{
-		menu.Row(menu.Data("[All Namespaces]", "helm_ns_select", cluster.Name+"|")),
-		menu.Row(menu.Data("production", "helm_ns_select", cluster.Name+"|production")),
-		menu.Row(menu.Data("staging", "helm_ns_select", cluster.Name+"|staging")),
-		menu.Row(menu.Data("kube-system", "helm_ns_select", cluster.Name+"|kube-system")),
-	}
-	menu.Inline(rows...)
 
+	// Always offer "All Namespaces" first
+	rows := []telebot.Row{
+		menu.Row(menu.Data("[All Namespaces]", "helm_ns_select", m.sd(cluster.Name+"|"))),
+	}
+
+	// Dynamically query namespaces from cluster using the REST config
+	namespaces := m.listClusterNamespaces(cluster)
+	for _, ns := range namespaces {
+		rows = append(rows, menu.Row(menu.Data(ns, "helm_ns_select", m.sd(cluster.Name+"|"+ns))))
+	}
+
+	menu.Inline(rows...)
 	return c.Send("⎈ Select namespace for Helm releases:", menu)
+}
+
+// listClusterNamespaces dynamically queries namespaces from a cluster.
+// Falls back to common defaults if the API call fails.
+func (m *Module) listClusterNamespaces(cluster ClusterClient) []string {
+	if cluster.Kubeconfig == nil {
+		return []string{"default", "production", "staging", "kube-system"}
+	}
+
+	cs, err := k8sClient.NewForConfig(cluster.Kubeconfig)
+	if err != nil {
+		m.logger.Debug("failed to create clientset for namespace list, using defaults", zap.Error(err))
+		return []string{"default", "production", "staging", "kube-system"}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	nsList, err := cs.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		m.logger.Debug("failed to list namespaces for helm, using defaults", zap.Error(err))
+		return []string{"default", "production", "staging", "kube-system"}
+	}
+
+	names := make([]string, 0, len(nsList.Items))
+	for _, ns := range nsList.Items {
+		names = append(names, ns.Name)
+	}
+	return names
 }
 
 func (m *Module) handleNamespaceSelect(c telebot.Context) error {
@@ -138,11 +192,11 @@ func (m *Module) handleNamespaceSelect(c telebot.Context) error {
 	rows := make([]telebot.Row, 0, len(releases)+1)
 	for _, rel := range releases {
 		btn := menu.Data(fmt.Sprintf("%s (%s)", rel.Name, rel.Chart.Metadata.AppVersion),
-			"helm_release_detail", fmt.Sprintf("%s|%s|%s", clusterName, namespace, rel.Name))
+			"helm_release_detail", m.sd(fmt.Sprintf("%s|%s|%s", clusterName, namespace, rel.Name)))
 		rows = append(rows, menu.Row(btn))
 	}
 	rows = append(rows, menu.Row(
-		menu.Data("🔄 Refresh", "helm_refresh", clusterName+"|"+namespace),
+		menu.Data("🔄 Refresh", "helm_refresh", m.sd(clusterName+"|"+namespace)),
 	))
 	menu.Inline(rows...)
 
@@ -164,8 +218,8 @@ func (m *Module) handleReleaseDetail(c telebot.Context) error {
 
 	text := formatReleaseDetail(rel, history)
 	menu := &telebot.ReplyMarkup{}
-	rollbackBtn := menu.Data("⏪ Rollback", "helm_rollback_select", fmt.Sprintf("%s|%s|%s", clusterName, namespace, releaseName))
-	backBtn := menu.Data("◀️ Back", "helm_ns_select", clusterName+"|"+namespace)
+	rollbackBtn := menu.Data("⏪ Rollback", "helm_rollback_select", m.sd(fmt.Sprintf("%s|%s|%s", clusterName, namespace, releaseName)))
+	backBtn := menu.Data("◀️ Back", "helm_ns_select", m.sd(clusterName+"|"+namespace))
 	menu.Inline(menu.Row(rollbackBtn, backBtn))
 
 	return c.Edit(text, menu)
@@ -193,7 +247,7 @@ func (m *Module) handleRollbackSelect(c telebot.Context) error {
 		btn := menu.Data(
 			fmt.Sprintf("Rev %d (%s)", h.Version, h.Chart.Metadata.AppVersion),
 			"helm_rollback_confirm",
-			fmt.Sprintf("%s|%s|%s|%d", clusterName, namespace, releaseName, h.Version),
+			m.sd(fmt.Sprintf("%s|%s|%s|%d", clusterName, namespace, releaseName, h.Version)),
 		)
 		rows = append(rows, menu.Row(btn))
 	}

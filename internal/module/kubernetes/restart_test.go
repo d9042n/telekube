@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/d9042n/telekube/internal/bot/keyboard"
 	"github.com/d9042n/telekube/internal/cluster"
 	"github.com/d9042n/telekube/internal/entity"
 	"github.com/d9042n/telekube/internal/rbac"
@@ -55,6 +56,7 @@ func TestHandleRestartCommand_ClientSetError(t *testing.T) {
 		userCtx: userCtx,
 		rbac:    testutil.NewAllowAllRBAC(),
 		audit:   testutil.NewFakeAuditLogger(),
+		kb:      keyboard.NewBuilder(),
 		logger:  zap.NewNop(),
 		nsCache: newNamespaceCache(),
 	}
@@ -155,6 +157,7 @@ func TestHandleRestartCommand_AuditDenied(t *testing.T) {
 		userCtx: userCtx,
 		rbac:    testutil.NewDenyAllRBAC(),
 		audit:   auditLog,
+		kb:      keyboard.NewBuilder(),
 		logger:  zap.NewNop(),
 		nsCache: newNamespaceCache(),
 	}
@@ -183,7 +186,7 @@ func buildTestModule(t *testing.T, rbacEngine rbac.Engine) *Module {
 		userCtx: userCtx,
 		rbac:    rbacEngine,
 		audit:   testutil.NewFakeAuditLogger(),
-		kb:      nil,
+		kb:      keyboard.NewBuilder(),
 		logger:  zap.NewNop(),
 		nsCache: newNamespaceCache(),
 	}
@@ -202,7 +205,7 @@ func buildTestModuleWithK8s(t *testing.T, rbacEngine rbac.Engine, objects ...run
 		userCtx: userCtx,
 		rbac:    rbacEngine,
 		audit:   testutil.NewFakeAuditLogger(),
-		kb:      nil,
+		kb:      keyboard.NewBuilder(),
 		logger:  zap.NewNop(),
 		nsCache: newNamespaceCache(),
 	}

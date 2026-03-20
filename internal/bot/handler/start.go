@@ -43,10 +43,20 @@ func Start(clusterMgr cluster.Manager, userCtx *cluster.UserContext, rbacEngine 
 }
 
 // Help handles the /help command with dynamic content based on role.
-func Help(registry interface{ AllCommands() []module.CommandInfo }, rbacEngine rbac.Engine) telebot.HandlerFunc {
-	type cmdProvider interface {
-		AllCommands() []module.CommandInfo
+func Help(registry *module.Registry, rbacEngine rbac.Engine) telebot.HandlerFunc {
+	// Module name → display section header
+	sectionHeaders := map[string]string{
+		"kubernetes": "☸️ Kubernetes",
+		"helm":      "⎈ Helm",
+		"incident":  "🚨 Incident",
+		"notify":    "🔔 Notifications",
+		"rbac":      "🔐 RBAC",
+		"argocd":    "🔄 ArgoCD",
+		"approval":  "✅ Approval",
+		"watcher":   "👀 Watcher",
+		"briefing":  "📰 Briefing",
 	}
+
 	return func(c telebot.Context) error {
 		user := middleware.GetUser(c)
 		if user == nil {
@@ -57,49 +67,59 @@ func Help(registry interface{ AllCommands() []module.CommandInfo }, rbacEngine r
 		defer cancel()
 
 		var sb strings.Builder
-		sb.WriteString("📋 *Available Commands*\n")
-		sb.WriteString("━━━━━━━━━━━━━━━━━━\n\n")
+		sb.WriteString("📋 *Telekube Commands*\n")
+		sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━\n\n")
 
-		// Base commands
-		sb.WriteString("🤖 *General:*\n")
+		// Core commands (always visible)
+		sb.WriteString("🤖 *Core*\n")
 		sb.WriteString("  /start — Welcome & cluster selection\n")
 		sb.WriteString("  /help — This help message\n")
 		sb.WriteString("  /clusters — Switch cluster\n")
+		sb.WriteString("  /audit — View audit log\n")
 		sb.WriteString("\n")
 
-		// Module commands (filtered by permission)
-		if p, ok := registry.(cmdProvider); ok {
-			cmds := p.AllCommands()
-			groups := make(map[string][]string) // group -> commands
-			for _, cmd := range cmds {
-				// Check permission
+		// Module commands grouped by module
+		for _, mc := range registry.ModulesWithCommands() {
+			header, ok := sectionHeaders[mc.Name]
+			if !ok {
+				name := mc.Name
+				if len(name) > 0 {
+					name = strings.ToUpper(name[:1]) + name[1:]
+				}
+				header = "📦 " + name
+			}
+
+			// Filter by permission
+			var visible []module.CommandInfo
+			for _, cmd := range mc.Commands {
 				if cmd.Permission != "" {
 					allowed, _ := rbacEngine.HasPermission(ctx, user.TelegramID, cmd.Permission)
 					if !allowed {
 						continue
 					}
 				}
-				// Group by first word of command
-				group := "Other"
-				if strings.HasPrefix(cmd.Command, "/pods") || strings.HasPrefix(cmd.Command, "/logs") ||
-					strings.HasPrefix(cmd.Command, "/events") || strings.HasPrefix(cmd.Command, "/restart") {
-					group = "📦 Kubernetes"
-				} else if strings.HasPrefix(cmd.Command, "/audit") {
-					group = "🔧 Admin"
-				}
-				groups[group] = append(groups[group], fmt.Sprintf("  %s — %s", cmd.Command, cmd.Description))
+				visible = append(visible, cmd)
 			}
 
-			for group, cmds := range groups {
-				sb.WriteString(fmt.Sprintf("*%s:*\n", group))
-				for _, cmd := range cmds {
-					sb.WriteString(cmd + "\n")
-				}
-				sb.WriteString("\n")
+			if len(visible) == 0 {
+				continue
 			}
+
+			sb.WriteString(fmt.Sprintf("*%s*\n", header))
+			for _, cmd := range visible {
+				sb.WriteString(fmt.Sprintf("  %s — %s\n", cmd.Command, cmd.Description))
+			}
+			sb.WriteString("\n")
 		}
 
-		sb.WriteString("Use buttons for interactive navigation! 🎛")
+		// Background features
+		sb.WriteString("*⚙️ Background*\n")
+		sb.WriteString("  👀 Watcher — Pod/Node/CronJob/Cert/PVC auto-alerts\n")
+		sb.WriteString("  🛡 AlertManager — Webhook receiver\n")
+		sb.WriteString("  ✅ Approval — Gate for dangerous ops\n")
+		sb.WriteString("\n")
+
+		sb.WriteString("_Use buttons for interactive navigation!_ 🎛")
 
 		return c.Send(sb.String(), telebot.ModeMarkdown)
 	}
@@ -138,7 +158,7 @@ func Clusters(clusterMgr cluster.Manager, userCtx *cluster.UserContext, kb *keyb
 }
 
 // ClusterSelect handles cluster selection callback.
-func ClusterSelect(clusterMgr cluster.Manager, userCtx *cluster.UserContext) telebot.HandlerFunc {
+func ClusterSelect(clusterMgr cluster.Manager, userCtx *cluster.UserContext, kb *keyboard.Builder) telebot.HandlerFunc {
 	return func(c telebot.Context) error {
 		user := middleware.GetUser(c)
 		if user == nil {
@@ -158,8 +178,29 @@ func ClusterSelect(clusterMgr cluster.Manager, userCtx *cluster.UserContext) tel
 
 		userCtx.SetCluster(user.TelegramID, clusterName)
 
-		return c.Respond(&telebot.CallbackResponse{
+		// Send toast notification
+		_ = c.Respond(&telebot.CallbackResponse{
 			Text: fmt.Sprintf("✅ Switched to %s", info.DisplayName),
 		})
+
+		// Update the original message with selected cluster marked
+		clusters := clusterMgr.List()
+
+		var sb strings.Builder
+		sb.WriteString("🌐 *Clusters*\n")
+		sb.WriteString("━━━━━━━━━━━━━━━━━━\n\n")
+
+		for _, cl := range clusters {
+			if cl.Name == clusterName {
+				sb.WriteString(fmt.Sprintf("✅ *%s*  ← selected\n", cl.DisplayName))
+			} else {
+				sb.WriteString(fmt.Sprintf("%s %s\n", cl.Status.Emoji(), cl.DisplayName))
+			}
+		}
+
+		sb.WriteString(fmt.Sprintf("\n🔗 Connected to *%s*", info.DisplayName))
+
+		markup := kb.ClusterSelector(clusters)
+		return c.Edit(sb.String(), markup, telebot.ModeMarkdown)
 	}
 }

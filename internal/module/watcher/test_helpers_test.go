@@ -10,6 +10,7 @@ import (
 	"gopkg.in/telebot.v3"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
@@ -50,4 +51,5 @@ func (f *fakeClusterManager) ClientSet(clusterName string) (kubernetes.Interface
 func (f *fakeClusterManager) MetricsClient(clusterName string) (metricsv.Interface, error)   { return nil, fmt.Errorf("no metrics") }
 func (f *fakeClusterManager) DynamicClient(clusterName string) (dynamic.Interface, error)    { return nil, fmt.Errorf("no dynamic") }
 func (f *fakeClusterManager) HealthCheck(_ context.Context) map[string]entity.HealthStatus   { return nil }
+func (f *fakeClusterManager) RESTConfig(_ string) (*rest.Config, error)                       { return nil, fmt.Errorf("no rest config") }
 func (f *fakeClusterManager) Close() error                                                    { return nil }

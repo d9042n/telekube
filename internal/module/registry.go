@@ -21,6 +21,9 @@ type Registry struct {
 
 // NewRegistry creates a new module registry.
 func NewRegistry(logger *zap.Logger) *Registry {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	return &Registry{
 		modules: make(map[string]Module),
 		logger:  logger,
@@ -131,6 +134,33 @@ func (r *Registry) AllCommands() []CommandInfo {
 		cmds = append(cmds, m.Commands()...)
 	}
 	return cmds
+}
+
+// ModuleCommands pairs a module name with its commands.
+type ModuleCommands struct {
+	Name        string
+	Description string
+	Commands    []CommandInfo
+}
+
+// ModulesWithCommands returns each module's commands in registration order.
+func (r *Registry) ModulesWithCommands() []ModuleCommands {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var result []ModuleCommands
+	for _, name := range r.order {
+		m := r.modules[name]
+		cmds := m.Commands()
+		if len(cmds) > 0 {
+			result = append(result, ModuleCommands{
+				Name:        name,
+				Description: m.Description(),
+				Commands:    cmds,
+			})
+		}
+	}
+	return result
 }
 
 // HealthAll returns health status of all modules.

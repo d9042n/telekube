@@ -172,6 +172,9 @@ func NewHarness(t *testing.T, opts ...HarnessOption) *Harness {
 		t.Logf("warning: registering watcher module: %v", regErr)
 	}
 
+	// Register all handlers now that every module is in the registry.
+	teleBot.RegisterHandlers()
+
 	// ── 8. Start modules & bot ──────────────────────────────────────────────
 	ctx, cancel := context.WithCancel(context.Background())
 	if startErr := registry.StartAll(ctx); startErr != nil {
@@ -328,6 +331,9 @@ func (n *noopClusterManager) MetricsClient(_ string) (metricsv.Interface, error)
 }
 func (n *noopClusterManager) DynamicClient(_ string) (dynamic.Interface, error) {
 	return nil, fmt.Errorf("noop cluster manager: no dynamic client")
+}
+func (n *noopClusterManager) RESTConfig(_ string) (*k8srest.Config, error) {
+	return nil, fmt.Errorf("noop cluster manager: no rest config")
 }
 func (n *noopClusterManager) HealthCheck(_ context.Context) map[string]entity.HealthStatus {
 	return nil

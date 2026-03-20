@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 	metricsfake "k8s.io/metrics/pkg/client/clientset/versioned/fake"
 
@@ -110,6 +111,11 @@ func (f *FakeClusterManager) HealthCheck(_ context.Context) map[string]entity.He
 		result[c.Name] = entity.HealthStatusHealthy
 	}
 	return result
+}
+
+// RESTConfig implements cluster.Manager.
+func (f *FakeClusterManager) RESTConfig(_ string) (*rest.Config, error) {
+	return &rest.Config{Host: "https://fake-cluster:6443"}, nil
 }
 
 // Close implements cluster.Manager.

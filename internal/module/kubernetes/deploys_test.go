@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/d9042n/telekube/internal/bot/keyboard"
 	"github.com/d9042n/telekube/internal/cluster"
 	"github.com/d9042n/telekube/internal/entity"
 	"github.com/d9042n/telekube/internal/testutil"
@@ -42,6 +43,7 @@ func TestHandleDeploysCommand_ClientSetError(t *testing.T) {
 		userCtx: userCtx,
 		rbac:    testutil.NewAllowAllRBAC(),
 		audit:   testutil.NewFakeAuditLogger(),
+		kb:      keyboard.NewBuilder(),
 		logger:  zap.NewNop(),
 		nsCache: newNamespaceCache(),
 	}

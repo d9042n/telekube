@@ -94,7 +94,6 @@ func NewWithURL(
 	}
 
 	b.registerMiddleware()
-	b.registerHandlers()
 
 	return b, nil
 }
@@ -108,7 +107,9 @@ func (b *Bot) registerMiddleware() {
 	)
 }
 
-func (b *Bot) registerHandlers() {
+// RegisterHandlers registers all bot handlers and module handlers.
+// Call this after all modules have been registered in the registry.
+func (b *Bot) RegisterHandlers() {
 	kbBuilder := keyboard.NewBuilder()
 
 	// Base commands
@@ -118,7 +119,7 @@ func (b *Bot) registerHandlers() {
 	b.tele.Handle("/audit", handler.AuditLog(b.audit, b.rbac))
 
 	// Cluster selection callback
-	b.tele.Handle(&telebot.Btn{Unique: "cluster_select"}, handler.ClusterSelect(b.cluster, b.userCtx))
+	b.tele.Handle(&telebot.Btn{Unique: "cluster_select"}, handler.ClusterSelect(b.cluster, b.userCtx, kbBuilder))
 
 	// Register module commands
 	b.modules.RegisterAll(b.tele)

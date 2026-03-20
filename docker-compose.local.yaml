@@ -1,0 +1,67 @@
+###############################################################################
+# Telekube – Local Development Docker Compose
+# Usage:
+#   1. Copy configs/config.example.yaml → configs/config.local.yaml and edit
+#   2. Create .env with TELEKUBE_TELEGRAM_TOKEN and TELEKUBE_TELEGRAM_ADMIN_IDS
+#   3. Place your kubeconfig at ~/.kube/config (or change the volume mount)
+#   4. docker compose -f docker-compose.local.yaml up --build
+###############################################################################
+services:
+  telekube:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+    container_name: telekube
+    restart: unless-stopped
+    working_dir: /app
+    env_file:
+      - .env
+    volumes:
+      # Config file — mounted as config.yaml so Viper finds it in ./configs/
+      - ./configs/config.local.yaml:/app/configs/config.yaml:ro
+      # Kubeconfig (required — mount your local kubeconfig)
+      - ${KUBECONFIG_PATH:-~/.kube/config}:/home/telekube/.kube/config:ro
+    ports:
+      # Health/metrics endpoint
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: telekube-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: telekube
+      POSTGRES_USER: telekube
+      POSTGRES_PASSWORD: telekube_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - telekube_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U telekube"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: telekube-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - telekube_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  telekube_pgdata:
+  telekube_redis:

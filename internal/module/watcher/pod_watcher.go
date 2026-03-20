@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/d9042n/telekube/internal/audit"
+	"github.com/d9042n/telekube/internal/bot/keyboard"
 	"github.com/d9042n/telekube/internal/cluster"
 	"github.com/d9042n/telekube/internal/config"
 	"github.com/d9042n/telekube/internal/entity"
@@ -215,7 +216,7 @@ func (w *PodWatcher) alert(cluster string, pod *corev1.Pod, condition, container
 
 	// Action buttons
 	menu := &telebot.ReplyMarkup{}
-	podData := fmt.Sprintf("%s|%s|%s", pod.Name, pod.Namespace, cluster)
+	podData := keyboard.GlobalStore().Store(fmt.Sprintf("%s|%s|%s", pod.Name, pod.Namespace, cluster))
 	btnLogs := menu.Data("📋 Full Logs", "k8s_logs", podData)
 	btnEvents := menu.Data("🔍 Events", "k8s_events", podData)
 	btnRestart := menu.Data("🔄 Restart", "k8s_restart", podData)

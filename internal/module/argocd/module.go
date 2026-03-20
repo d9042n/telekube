@@ -147,6 +147,9 @@ func (m *Module) Register(bot *telebot.Bot, _ *telebot.Group) {
 	bot.Handle(&telebot.Btn{Unique: "argo_apps_back"}, m.handleAppsBack)
 	bot.Handle(&telebot.Btn{Unique: "argo_inst_select"}, m.handleInstanceSelect)
 
+	// Diff callback
+	bot.Handle(&telebot.Btn{Unique: "argo_diff"}, m.handleDiff)
+
 	// Sync callbacks
 	bot.Handle(&telebot.Btn{Unique: "argo_sync"}, m.handleSync)
 	bot.Handle(&telebot.Btn{Unique: "argo_sync_now"}, m.handleSyncNow)

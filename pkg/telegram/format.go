@@ -99,6 +99,8 @@ func EscapeMarkdownV2(text string) string {
 }
 
 // SplitMessage splits a long message into chunks that fit Telegram's 4096 char limit.
+// It correctly handles code blocks — if a split occurs inside a ``` block,
+// the block is closed in the current part and reopened in the next.
 func SplitMessage(text string, maxLen int) []string {
 	if maxLen <= 0 {
 		maxLen = 4096
@@ -110,23 +112,40 @@ func SplitMessage(text string, maxLen int) []string {
 	var parts []string
 	lines := strings.Split(text, "\n")
 	var current strings.Builder
+	inCodeBlock := false
 
 	for _, line := range lines {
-		if current.Len()+len(line)+1 > maxLen {
-			if current.Len() > 0 {
-				parts = append(parts, current.String())
-				current.Reset()
+		trimmed := strings.TrimSpace(line)
+		isCodeFence := strings.HasPrefix(trimmed, "```")
+
+		needed := len(line) + 1
+		// Reserve space for closing ``` if we're in a code block and need to split
+		closingOverhead := 0
+		if inCodeBlock {
+			closingOverhead = 4 // \n```
+		}
+
+		if current.Len()+needed+closingOverhead > maxLen && current.Len() > 0 {
+			// Close code block before splitting
+			if inCodeBlock {
+				current.WriteString("\n```")
 			}
-			// If single line exceeds max, split it
-			for len(line) > maxLen {
-				parts = append(parts, line[:maxLen])
-				line = line[maxLen:]
+			parts = append(parts, current.String())
+			current.Reset()
+			// Reopen code block in new part
+			if inCodeBlock {
+				current.WriteString("```\n")
 			}
 		}
+
 		if current.Len() > 0 {
 			current.WriteByte('\n')
 		}
 		current.WriteString(line)
+
+		if isCodeFence {
+			inCodeBlock = !inCodeBlock
+		}
 	}
 	if current.Len() > 0 {
 		parts = append(parts, current.String())

@@ -29,6 +29,20 @@ jobs:
           version: latest
           args: --timeout=5m
 
+  secrets:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -120,7 +134,7 @@ jobs:
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, test, secrets]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

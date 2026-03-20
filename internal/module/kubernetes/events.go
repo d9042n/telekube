@@ -109,7 +109,7 @@ func (m *Module) fetchAndSendEvents(c telebot.Context, podName, namespace, clust
 
 	// Buttons
 	menu := &telebot.ReplyMarkup{}
-	data := fmt.Sprintf("%s|%s|%s", podName, namespace, clusterName)
+	data := m.kb.StoreData(fmt.Sprintf("%s|%s|%s", podName, namespace, clusterName))
 	btnRefresh := menu.Data("🔄 Refresh", "k8s_events_refresh", data)
 	btnBack := menu.Data("◀️ Back", "k8s_pod_detail", data)
 	menu.Inline(menu.Row(btnRefresh, btnBack))
@@ -146,7 +146,8 @@ func (m *Module) handleRestart(c telebot.Context) error {
 		return c.Respond(&telebot.CallbackResponse{Text: "⛔ You don't have permission to restart pods."})
 	}
 
-	parts := strings.SplitN(c.Callback().Data, "|", 3)
+	resolvedData := c.Callback().Data
+	parts := strings.SplitN(resolvedData, "|", 3)
 	if len(parts) != 3 {
 		return c.Respond(&telebot.CallbackResponse{Text: "⚠️ Invalid data"})
 	}
@@ -155,7 +156,7 @@ func (m *Module) handleRestart(c telebot.Context) error {
 
 	text := fmt.Sprintf("⚠️ *Confirm restart pod %s?*\n\nCluster: %s\nNamespace: %s\n\nThis will delete the pod. The controller will recreate it.",
 		podName, clusterName, namespace)
-	markup := m.kb.Confirmation("k8s_restart", c.Callback().Data)
+	markup := m.kb.Confirmation("k8s_restart", m.kb.StoreData(resolvedData))
 
 	_, err := c.Bot().Edit(c.Callback().Message, text, markup, telebot.ModeMarkdown)
 	return err

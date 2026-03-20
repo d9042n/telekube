@@ -24,6 +24,7 @@ type Clients struct {
 	ClientSet     kubernetes.Interface
 	MetricsClient metricsv.Interface
 	DynamicClient dynamic.Interface
+	RESTConfig    *rest.Config
 }
 
 // NewClients creates all K8s clients from config.
@@ -57,6 +58,7 @@ func NewClients(cfg ClientConfig) (*Clients, error) {
 		ClientSet:     cs,
 		MetricsClient: mc,
 		DynamicClient: dc,
+		RESTConfig:    restCfg,
 	}, nil
 }
 

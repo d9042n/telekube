@@ -58,7 +58,20 @@ make build
 ./bin/telekube serve --config configs/config.yaml
 ```
 
-### Option 2: Manual Configuration
+### Option 2: Docker Compose (Local Development)
+
+```bash
+git clone https://github.com/d9042n/telekube.git
+cd telekube
+
+# Copy and fill in your secrets
+cp .env.example .env
+# Edit .env with your Telegram bot token and admin IDs
+
+docker compose -f docker-compose.local.yaml up --build
+```
+
+### Option 3: Manual Configuration
 
 ```bash
 git clone https://github.com/d9042n/telekube.git
@@ -74,7 +87,7 @@ export TELEKUBE_TELEGRAM_ADMIN_IDS="123456789"
 make build && make run
 ```
 
-### Option 3: Helm (Kubernetes)
+### Option 4: Helm (Kubernetes)
 
 ```bash
 helm install telekube deploy/helm/telekube \
@@ -84,7 +97,7 @@ helm install telekube deploy/helm/telekube \
   --set config.telegram.adminIDs="{123456789}"
 ```
 
-### Option 4: Docker
+### Option 5: Docker
 
 ```bash
 docker run --rm -it \
@@ -257,6 +270,15 @@ Telegram bot admins (configured via `admin_ids`) always have the **super-admin**
 Advanced fine-grained policy rules are supported with allow/deny matching by module, resource, action, cluster, and namespace.
 
 Use `/rbac` in Telegram to manage user roles.
+
+---
+
+## 🔒 Security
+
+- **Secret scanning** — [Gitleaks](https://github.com/gitleaks/gitleaks) runs automatically in CI to prevent accidental credential commits.
+- **Never commit secrets** — Use `.env` (gitignored) for local secrets. See [`.env.example`](.env.example) for the required variables.
+- **Secrets are redacted** — ArgoCD diffs for `Secret` resources and log sanitization are built in.
+- **Report vulnerabilities** — Please open a private security advisory via GitHub if you discover a security issue.
 
 ---
 

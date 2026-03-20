@@ -69,17 +69,25 @@ func (f *fakeCtx) Bot() *telebot.Bot           { return nil }
 // Used for ClusterSelect handler tests.
 type fakeCtxWithCallback struct {
 	*fakeCtx
-	cb *telebot.Callback
+	cb     *telebot.Callback
+	edited []string
 }
 
 func newCallbackCtx(user *entity.User, data string) *fakeCtxWithCallback {
 	return &fakeCtxWithCallback{
 		fakeCtx: newFakeCtx(user),
-		cb: &telebot.Callback{Data: data},
+		cb:      &telebot.Callback{Data: data},
 	}
 }
 
 func (f *fakeCtxWithCallback) Callback() *telebot.Callback { return f.cb }
+
+func (f *fakeCtxWithCallback) Edit(what interface{}, _ ...interface{}) error {
+	if s, ok := what.(string); ok {
+		f.edited = append(f.edited, s)
+	}
+	return nil
+}
 
 // ─── Fake RBAC that satisfies rbac.Engine ────────────────────────────────────
 
@@ -137,13 +145,30 @@ func (r *testRBAC) ListAllBindings(_ context.Context) ([]entity.UserRoleBinding,
 	return nil, nil
 }
 
-// ─── Fake CommandRegistry ──────────────────────────────────────────────────────
+// ─── Fake Module + Registry builder ──────────────────────────────────────────
 
-type testRegistry struct {
+// fakeModule satisfies module.Module for test purposes.
+type fakeModule struct {
+	name string
 	cmds []module.CommandInfo
 }
 
-func (r *testRegistry) AllCommands() []module.CommandInfo { return r.cmds }
+func (f *fakeModule) Name() string                                   { return f.name }
+func (f *fakeModule) Description() string                            { return f.name + " module" }
+func (f *fakeModule) Register(_ *telebot.Bot, _ *telebot.Group)      {}
+func (f *fakeModule) Start(_ context.Context) error                  { return nil }
+func (f *fakeModule) Stop(_ context.Context) error                   { return nil }
+func (f *fakeModule) Health() entity.HealthStatus                    { return entity.HealthStatusHealthy }
+func (f *fakeModule) Commands() []module.CommandInfo                  { return f.cmds }
+
+// buildRegistry creates a *module.Registry containing one module with the given commands.
+func buildRegistry(cmds []module.CommandInfo) *module.Registry {
+	reg := module.NewRegistry(nil) // nil logger is fine for tests
+	if len(cmds) > 0 {
+		_ = reg.Register(&fakeModule{name: "test", cmds: cmds})
+	}
+	return reg
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -258,7 +283,7 @@ func TestStart_AlwaysSendsExactlyOneMessage(t *testing.T) {
 func TestHelp_NoUser_SendsWarning(t *testing.T) {
 	t.Parallel()
 
-	reg := &testRegistry{}
+	reg := buildRegistry(nil)
 	rb := newAllowRBAC(entity.RoleViewer)
 
 	ctx := newFakeCtx(nil)
@@ -272,12 +297,10 @@ func TestHelp_NoUser_SendsWarning(t *testing.T) {
 func TestHelp_AdminSeesBothCommands(t *testing.T) {
 	t.Parallel()
 
-	reg := &testRegistry{
-		cmds: []module.CommandInfo{
-			{Command: "/pods", Description: "List pods", Permission: "kubernetes.pods.list"},
-			{Command: "/audit", Description: "Audit log", Permission: "audit.view"},
-		},
-	}
+	reg := buildRegistry([]module.CommandInfo{
+		{Command: "/pods", Description: "List pods", Permission: "kubernetes.pods.list"},
+		{Command: "/secret", Description: "Manage secrets", Permission: "admin.secrets.manage"},
+	})
 	rb := newAllowRBAC(entity.RoleAdmin)
 	user := testUser(1, "admin", entity.RoleAdmin)
 	ctx := newFakeCtx(user)
@@ -288,20 +311,18 @@ func TestHelp_AdminSeesBothCommands(t *testing.T) {
 	assert.NoError(t, err)
 	msg := ctx.messages[0]
 	assert.Contains(t, msg, "/pods")
-	assert.Contains(t, msg, "/audit")
+	assert.Contains(t, msg, "/secret")
 }
 
 func TestHelp_ViewerOnlySeesPodCommand(t *testing.T) {
 	t.Parallel()
 
-	reg := &testRegistry{
-		cmds: []module.CommandInfo{
-			{Command: "/pods", Description: "List pods", Permission: "kubernetes.pods.list"},
-			{Command: "/audit", Description: "Audit log", Permission: "audit.view"},
-		},
-	}
+	reg := buildRegistry([]module.CommandInfo{
+		{Command: "/pods", Description: "List pods", Permission: "kubernetes.pods.list"},
+		{Command: "/secret", Description: "Manage secrets", Permission: "admin.secrets.manage"},
+	})
 
-	// Viewer can see pods but not audit
+	// Viewer can see pods but not secrets
 	rb := newSelectiveRBAC(entity.RoleViewer, "kubernetes.pods.list")
 	user := testUser(2, "viewer", entity.RoleViewer)
 	ctx := newFakeCtx(user)
@@ -312,17 +333,15 @@ func TestHelp_ViewerOnlySeesPodCommand(t *testing.T) {
 	assert.NoError(t, err)
 	msg := ctx.messages[0]
 	assert.Contains(t, msg, "/pods", "viewer should see pods command")
-	assert.NotContains(t, msg, "/audit", "viewer should NOT see audit command")
+	assert.NotContains(t, msg, "/secret", "viewer should NOT see secret command")
 }
 
 func TestHelp_DenyAllViewer_SeesNoPermissionedCommands(t *testing.T) {
 	t.Parallel()
 
-	reg := &testRegistry{
-		cmds: []module.CommandInfo{
-			{Command: "/pods", Description: "List pods", Permission: "kubernetes.pods.list"},
-		},
-	}
+	reg := buildRegistry([]module.CommandInfo{
+		{Command: "/pods", Description: "List pods", Permission: "kubernetes.pods.list"},
+	})
 
 	rb := newDenyRBAC()
 	user := testUser(3, "readonly", entity.RoleViewer)
@@ -339,11 +358,9 @@ func TestHelp_DenyAllViewer_SeesNoPermissionedCommands(t *testing.T) {
 func TestHelp_CommandWithNoPermission_AlwaysVisible(t *testing.T) {
 	t.Parallel()
 
-	reg := &testRegistry{
-		cmds: []module.CommandInfo{
-			{Command: "/status", Description: "Cluster status", Permission: ""},
-		},
-	}
+	reg := buildRegistry([]module.CommandInfo{
+		{Command: "/status", Description: "Cluster status", Permission: ""},
+	})
 
 	rb := newDenyRBAC() // deny everything
 	user := testUser(4, "guest", entity.RoleViewer)
@@ -417,7 +434,7 @@ func TestClusterSelect_NoUser_RespondsWithError(t *testing.T) {
 	mgr := testutil.NewFakeClusterManager()
 	ctx := newCallbackCtx(nil, "prod")
 
-	h := handler.ClusterSelect(mgr, newUserCtx(mgr))
+	h := handler.ClusterSelect(mgr, newUserCtx(mgr), keyboard.NewBuilder())
 	err := h(ctx)
 
 	assert.NoError(t, err)
@@ -432,7 +449,7 @@ func TestClusterSelect_EmptyCallbackData_RespondsNoCluster(t *testing.T) {
 	user := testUser(1, "alice", entity.RoleAdmin)
 	ctx := newCallbackCtx(user, "") // empty data
 
-	h := handler.ClusterSelect(mgr, newUserCtx(mgr))
+	h := handler.ClusterSelect(mgr, newUserCtx(mgr), keyboard.NewBuilder())
 	err := h(ctx)
 
 	assert.NoError(t, err)
@@ -446,7 +463,7 @@ func TestClusterSelect_ClusterNotFound_RespondsError(t *testing.T) {
 	user := testUser(1, "alice", entity.RoleAdmin)
 	ctx := newCallbackCtx(user, "nonexistent-cluster")
 
-	h := handler.ClusterSelect(mgr, newUserCtx(mgr))
+	h := handler.ClusterSelect(mgr, newUserCtx(mgr), keyboard.NewBuilder())
 	err := h(ctx)
 
 	assert.NoError(t, err)
@@ -462,7 +479,7 @@ func TestClusterSelect_ValidCluster_SetsAndResponds(t *testing.T) {
 	user := testUser(1, "alice", entity.RoleAdmin)
 	ctx := newCallbackCtx(user, "prod")
 
-	h := handler.ClusterSelect(mgr, uctx)
+	h := handler.ClusterSelect(mgr, uctx, keyboard.NewBuilder())
 	err := h(ctx)
 
 	assert.NoError(t, err)

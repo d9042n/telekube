@@ -36,7 +36,7 @@ func AuditLog(auditLogger audit.Logger, rbacEngine rbac.Engine) telebot.HandlerF
 		filter := storage.AuditFilter{
 			From:     &from,
 			Page:     1,
-			PageSize: 10,
+			PageSize: 20,
 		}
 
 		entries, total, err := auditLogger.Query(ctx, filter)

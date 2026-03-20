@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
@@ -24,6 +25,7 @@ type Manager interface {
 	ClientSet(clusterName string) (kubernetes.Interface, error)
 	MetricsClient(clusterName string) (metricsv.Interface, error)
 	DynamicClient(clusterName string) (dynamic.Interface, error)
+	RESTConfig(clusterName string) (*rest.Config, error)
 	HealthCheck(ctx context.Context) map[string]entity.HealthStatus
 	Close() error
 }
@@ -139,6 +141,14 @@ func (m *manager) DynamicClient(clusterName string) (dynamic.Interface, error) {
 		return nil, err
 	}
 	return clients.DynamicClient, nil
+}
+
+func (m *manager) RESTConfig(clusterName string) (*rest.Config, error) {
+	clients, err := m.getOrCreateClients(clusterName)
+	if err != nil {
+		return nil, err
+	}
+	return clients.RESTConfig, nil
 }
 
 // getOrCreateClients performs lazy initialization of K8s clients.

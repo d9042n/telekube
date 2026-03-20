@@ -1,0 +1,43 @@
+# Gitleaks configuration for Telekube
+# https://github.com/gitleaks/gitleaks
+#
+# This config extends the default ruleset and adds allowlists
+# for known safe patterns (test fixtures, example configs, etc.)
+
+title = "Telekube Gitleaks Config"
+
+[extend]
+# Use the default gitleaks rules as a base
+useDefault = true
+
+# ─── Global Allowlist ────────────────────────────────────────
+# Paths and patterns that are safe to ignore across all rules.
+[allowlist]
+
+  paths = [
+    # Test files may contain fake tokens for assertions
+    '''_test\.go$''',
+    # Example/template config files use placeholder values
+    '''\.env\.example$''',
+    '''config\.example\.yaml$''',
+    # Documentation may reference token formats
+    '''docs/guides/''',
+    '''docs/features/''',
+    '''COMMANDS_REFERENCE\.md$''',
+    '''PROJECT_STRUCTURE\.md$''',
+    # Helm values use placeholders
+    '''values\.yaml$''',
+  ]
+
+  # Strings that are clearly placeholders, not real secrets
+  regexTarget = "match"
+  regexes = [
+    '''your-.*-here''',
+    '''bot123456:ABC''',
+    '''123456789''',
+    '''987654321''',
+    '''user:pass@''',
+    '''test-token''',
+    '''my-secret-token''',
+    '''telekube_secret''',
+  ]

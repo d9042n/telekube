@@ -131,7 +131,7 @@ func (m *Module) sendDeployList(c telebot.Context, clusterName, namespace string
 
 	// Build keyboard
 	menu := &telebot.ReplyMarkup{}
-	data := fmt.Sprintf("%s|%s", namespace, clusterName)
+	data := m.sd(fmt.Sprintf("%s|%s", namespace, clusterName))
 	btnRefresh := menu.Data("🔄 Refresh", "k8s_deploys_refresh", data)
 	menu.Inline(menu.Row(btnRefresh))
 

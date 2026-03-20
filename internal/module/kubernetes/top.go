@@ -130,12 +130,12 @@ func (m *Module) sendPodTop(c telebot.Context, clusterName, namespace string, pa
 		podMetrics, err = metricsClient.MetricsV1beta1().PodMetricses(namespace).List(ctx, metav1.ListOptions{})
 	}
 	if err != nil {
-		m.logger.Error("failed to get pod metrics",
+		m.logger.Warn("failed to get pod metrics (metrics-server may not be installed)",
 			zap.String("cluster", clusterName),
 			zap.String("namespace", namespace),
 			zap.Error(err),
 		)
-		return c.Send("⚠️ Failed to get pod metrics. Is Metrics Server installed?")
+		return c.Send("⚠️ Failed to get pod metrics. Is Metrics Server installed?\n\nInstall: kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml")
 	}
 
 	if len(podMetrics.Items) == 0 {
@@ -244,7 +244,7 @@ func (m *Module) sendPodTop(c telebot.Context, clusterName, namespace string, pa
 	menu := &telebot.ReplyMarkup{}
 	var actionBtns []telebot.Btn
 
-	actionBtns = append(actionBtns, menu.Data("🔄 Refresh", "k8s_top_refresh", fmt.Sprintf("%s|%s|%d", namespace, clusterName, page)))
+	actionBtns = append(actionBtns, menu.Data("🔄 Refresh", "k8s_top_refresh", m.sd(fmt.Sprintf("%s|%s|%d", namespace, clusterName, page))))
 	actionBtns = append(actionBtns, menu.Data("📊 Nodes", "k8s_top_nodes", clusterName))
 
 	var rows []telebot.Row
@@ -253,10 +253,10 @@ func (m *Module) sendPodTop(c telebot.Context, clusterName, namespace string, pa
 	// Pagination
 	var navBtns []telebot.Btn
 	if page > 1 {
-		navBtns = append(navBtns, menu.Data("◀️ Prev", "k8s_top_page", fmt.Sprintf("%s|%s|%d", namespace, clusterName, page-1)))
+		navBtns = append(navBtns, menu.Data("◀️ Prev", "k8s_top_page", m.sd(fmt.Sprintf("%s|%s|%d", namespace, clusterName, page-1))))
 	}
 	if page < totalPages {
-		navBtns = append(navBtns, menu.Data("▶️ Next", "k8s_top_page", fmt.Sprintf("%s|%s|%d", namespace, clusterName, page+1)))
+		navBtns = append(navBtns, menu.Data("▶️ Next", "k8s_top_page", m.sd(fmt.Sprintf("%s|%s|%d", namespace, clusterName, page+1))))
 	}
 	if len(navBtns) > 0 {
 		rows = append(rows, menu.Row(navBtns...))
@@ -332,11 +332,11 @@ func (m *Module) sendNodeTop(c telebot.Context) error {
 
 	nodeMetrics, err := metricsClient.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		m.logger.Error("failed to get node metrics",
+		m.logger.Warn("failed to get node metrics (metrics-server may not be installed)",
 			zap.String("cluster", clusterName),
 			zap.Error(err),
 		)
-		return c.Send("⚠️ Failed to get node metrics. Is Metrics Server installed?")
+		return c.Send("⚠️ Failed to get node metrics. Is Metrics Server installed?\n\nInstall: kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml")
 	}
 
 	// Get node info for capacity/conditions

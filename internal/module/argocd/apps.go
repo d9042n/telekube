@@ -241,11 +241,12 @@ func buildAppDetailKeyboard(instanceName, appName string) *telebot.ReplyMarkup {
 	data := fmt.Sprintf("%s|%s", instanceName, appName)
 
 	btnSync := menu.Data("⚡ Sync", "argo_sync", data)
+	btnDiff := menu.Data("🔍 Diff", "argo_diff", data)
 	btnRollback := menu.Data("⏪ Rollback", "argo_rollback", data)
 	btnBack := menu.Data("◀️ Back", "argo_apps_back", instanceName)
 
 	menu.Inline(
-		menu.Row(btnSync, btnRollback),
+		menu.Row(btnSync, btnDiff, btnRollback),
 		menu.Row(btnBack),
 	)
 	return menu

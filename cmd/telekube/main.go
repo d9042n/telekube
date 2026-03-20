@@ -16,6 +16,8 @@ import (
 	approvalmod "github.com/d9042n/telekube/internal/module/approval"
 	"github.com/d9042n/telekube/internal/module/briefing"
 	argocdfmod "github.com/d9042n/telekube/internal/module/argocd"
+	helmmod "github.com/d9042n/telekube/internal/module/helm"
+	incidentmod "github.com/d9042n/telekube/internal/module/incident"
 	kubemod "github.com/d9042n/telekube/internal/module/kubernetes"
 	"github.com/d9042n/telekube/internal/module/notify"
 	"github.com/d9042n/telekube/internal/module/rbacmod"
@@ -150,29 +152,62 @@ func main() {
 		}
 	}
 
-	// 8. Init bot
-	teleBot, err := bot.New(cfg.Telegram, clusterMgr, store, rbacEngine, auditLogger, registry, log)
-	if err != nil {
-		log.Fatal("failed to create bot", zap.Error(err))
+	// Register Helm module
+	if cfg.Modules.Helm.Enabled {
+		var helmClusters []helmmod.ClusterClient
+		for _, ci := range clusterMgr.List() {
+			restCfg, restErr := clusterMgr.RESTConfig(ci.Name)
+			if restErr != nil {
+				log.Warn("skipping helm cluster (no rest config)",
+					zap.String("cluster", ci.Name), zap.Error(restErr))
+				continue
+			}
+			helmClusters = append(helmClusters, helmmod.ClusterClient{
+				Name:       ci.Name,
+				Kubeconfig: restCfg,
+			})
+		}
+		if len(helmClusters) > 0 {
+			helmMod := helmmod.NewModule(helmClusters, rbacEngine, auditLogger, log)
+			if regErr := registry.Register(helmMod); regErr != nil {
+				log.Error("failed to register helm module", zap.Error(regErr))
+			}
+		} else {
+			log.Warn("helm module enabled but no clusters available")
+		}
 	}
 
-	// Register approval bot module (must happen after bot is created)
+	// Register Incident module
+	if cfg.Modules.Incident.Enabled {
+		incMod := incidentmod.NewModule(clusterMgr, store, log)
+		if regErr := registry.Register(incMod); regErr != nil {
+			log.Error("failed to register incident module", zap.Error(regErr))
+		}
+	}
+
+	// Register approval bot module (before bot init so RegisterAll picks it up)
 	if regErr := registry.Register(approvalBotMod); regErr != nil {
 		log.Error("failed to register approval module", zap.Error(regErr))
 	}
 
-	// Register RBAC management module (Phase 4 — /rbac command)
+	// Register RBAC management module (/rbac command)
 	rbacMod := rbacmod.NewModule(rbacEngine, store.Users(), auditLogger, log)
 	if regErr := registry.Register(rbacMod); regErr != nil {
 		log.Error("failed to register rbac module", zap.Error(regErr))
 	}
 
-	// Register notification preferences module (Phase 4 — /notify command)
+	// Register notification preferences module (/notify command)
 	if cfg.Modules.Notify.Enabled {
 		notifyMod := notify.NewModule(store.NotificationPrefs(), log)
 		if regErr := registry.Register(notifyMod); regErr != nil {
 			log.Error("failed to register notify module", zap.Error(regErr))
 		}
+	}
+
+	// 8. Init bot (RegisterAll is called here — all modules above must be registered by now)
+	teleBot, err := bot.New(cfg.Telegram, clusterMgr, store, rbacEngine, auditLogger, registry, log)
+	if err != nil {
+		log.Fatal("failed to create bot", zap.Error(err))
 	}
 
 	// 9. Register watcher module
@@ -271,7 +306,10 @@ func main() {
 		}
 	}
 
-	// 11. Init health server
+	// 12. Register all handlers now that every module is in the registry
+	teleBot.RegisterHandlers()
+
+	// 13. Init health server
 	checker := health.NewChecker()
 	checker.Register("storage", func(ctx context.Context) error {
 		return store.Ping(ctx)

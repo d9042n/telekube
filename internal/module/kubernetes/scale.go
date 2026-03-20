@@ -23,6 +23,20 @@ const (
 	scaleTimeout    = 120 * time.Second
 )
 
+// displayName returns the user's @username or a fallback like "user_12345".
+func displayName(user *entity.User) string {
+	if user == nil {
+		return "unknown"
+	}
+	if user.Username != "" {
+		return "@" + user.Username
+	}
+	if user.DisplayName != "" {
+		return user.DisplayName
+	}
+	return fmt.Sprintf("user_%d", user.TelegramID)
+}
+
 // handleScale handles the /scale command — shows namespace selector for scaling.
 func (m *Module) handleScale(c telebot.Context) error {
 	user := middleware.GetUser(c)
@@ -131,7 +145,7 @@ func (m *Module) sendScaleableResources(c telebot.Context, clusterName, namespac
 			}
 			sb.WriteString(fmt.Sprintf("  📦 `%s` — %d/%d ready\n", d.Name, d.Status.ReadyReplicas, replicas))
 
-			data := fmt.Sprintf("deploy|%s|%s|%s", d.Name, d.Namespace, clusterName)
+			data := m.sd(fmt.Sprintf("deploy|%s|%s|%s", d.Name, d.Namespace, clusterName))
 			btn := menu.Data(
 				fmt.Sprintf("📦 %s (%d)", d.Name, replicas),
 				"k8s_scale_detail",
@@ -150,7 +164,7 @@ func (m *Module) sendScaleableResources(c telebot.Context, clusterName, namespac
 			}
 			sb.WriteString(fmt.Sprintf("  📦 `%s` — %d/%d ready\n", s.Name, s.Status.ReadyReplicas, replicas))
 
-			data := fmt.Sprintf("sts|%s|%s|%s", s.Name, s.Namespace, clusterName)
+			data := m.sd(fmt.Sprintf("sts|%s|%s|%s", s.Name, s.Namespace, clusterName))
 			btn := menu.Data(
 				fmt.Sprintf("📦 %s (%d)", s.Name, replicas),
 				"k8s_scale_detail",
@@ -168,9 +182,26 @@ func (m *Module) sendScaleableResources(c telebot.Context, clusterName, namespac
 
 	if c.Callback() != nil {
 		_, err := c.Bot().Edit(c.Callback().Message, sb.String(), menu, telebot.ModeMarkdown)
+		if err != nil {
+			m.logger.Warn("scale: markdown edit failed, retrying as plain text",
+				zap.String("namespace", namespace),
+				zap.Error(err),
+			)
+			// Fallback: strip Markdown markers and send as plain text
+			plain := strings.ReplaceAll(sb.String(), "*", "")
+			plain = strings.ReplaceAll(plain, "`", "")
+			_, err = c.Bot().Edit(c.Callback().Message, plain, menu)
+		}
 		return err
 	}
-	return c.Send(sb.String(), menu, telebot.ModeMarkdown)
+	err = c.Send(sb.String(), menu, telebot.ModeMarkdown)
+	if err != nil {
+		m.logger.Warn("scale: markdown send failed, retrying as plain text", zap.Error(err))
+		plain := strings.ReplaceAll(sb.String(), "*", "")
+		plain = strings.ReplaceAll(plain, "`", "")
+		return c.Send(plain, menu)
+	}
+	return nil
 }
 
 // handleScaleDetail shows current replicas and scale options.
@@ -243,18 +274,18 @@ func (m *Module) handleScaleDetail(c telebot.Context) error {
 	// -1 button
 	if currentReplicas > 0 {
 		quickBtns = append(quickBtns, menu.Data("-1", "k8s_scale_set",
-			fmt.Sprintf("%s|%d", baseData, currentReplicas-1)))
+			m.sd(fmt.Sprintf("%s|%d", baseData, currentReplicas-1))))
 	}
 	// Preset values
 	for _, n := range []int32{1, 2, 3, 5, 10} {
 		if n != currentReplicas {
 			quickBtns = append(quickBtns, menu.Data(fmt.Sprintf("%d", n), "k8s_scale_set",
-				fmt.Sprintf("%s|%d", baseData, n)))
+				m.sd(fmt.Sprintf("%s|%d", baseData, n))))
 		}
 	}
 	// +1 button
 	quickBtns = append(quickBtns, menu.Data("+1", "k8s_scale_set",
-		fmt.Sprintf("%s|%d", baseData, currentReplicas+1)))
+		m.sd(fmt.Sprintf("%s|%d", baseData, currentReplicas+1))))
 
 	// Arrange buttons in rows of 4
 	var rows []telebot.Row
@@ -267,12 +298,21 @@ func (m *Module) handleScaleDetail(c telebot.Context) error {
 	}
 
 	rows = append(rows, menu.Row(
-		menu.Data("◀️ Back", "k8s_scale_ns", fmt.Sprintf("%s|%s", namespace, clusterName)),
+		menu.Data("◀️ Back", "k8s_scale_ns", m.sd(fmt.Sprintf("%s|%s", namespace, clusterName))),
 	))
 
 	menu.Inline(rows...)
 
 	_, err = c.Bot().Edit(c.Callback().Message, sb.String(), menu, telebot.ModeMarkdown)
+	if err != nil {
+		m.logger.Warn("scale detail: markdown edit failed, retrying as plain text",
+			zap.String("name", name),
+			zap.Error(err),
+		)
+		plain := strings.ReplaceAll(sb.String(), "*", "")
+		plain = strings.ReplaceAll(plain, "`", "")
+		_, err = c.Bot().Edit(c.Callback().Message, plain, menu)
+	}
 	return err
 }
 
@@ -347,9 +387,9 @@ func (m *Module) handleScaleSet(c telebot.Context) error {
 		kindLabel, name, currentReplicas, targetReplicas, clusterName, namespace, extraWarning)
 
 	menu := &telebot.ReplyMarkup{}
-	btnConfirm := menu.Data("✅ Confirm", "k8s_scale_confirm", c.Callback().Data)
+	btnConfirm := menu.Data("✅ Confirm", "k8s_scale_confirm", m.sd(c.Callback().Data))
 	btnCancel := menu.Data("❌ Cancel", "k8s_scale_cancel",
-		fmt.Sprintf("%s|%s|%s|%s", kind, name, namespace, clusterName))
+		m.sd(fmt.Sprintf("%s|%s|%s|%s", kind, name, namespace, clusterName)))
 	menu.Inline(menu.Row(btnConfirm, btnCancel))
 
 	_, err = c.Bot().Edit(c.Callback().Message, text, menu, telebot.ModeMarkdown)
@@ -468,9 +508,9 @@ func (m *Module) handleScaleConfirm(c telebot.Context) error {
 	})
 
 	// Show initial success with progress
-	text := fmt.Sprintf("✅ *Scaled %s %s to %d replicas*\n\n🔄 Waiting for rollout...\n\nTriggered by: @%s at %s",
+	text := fmt.Sprintf("✅ *Scaled %s %s to %d replicas*\n\n🔄 Waiting for rollout...\n\nTriggered by: %s at %s",
 		kindLabel, name, targetReplicas,
-		user.Username, time.Now().UTC().Format("2006-01-02 15:04:05"))
+		displayName(user), time.Now().UTC().Format("2006-01-02 15:04:05"))
 
 	_, editErr := c.Bot().Edit(c.Callback().Message, text, telebot.ModeMarkdown)
 	if editErr != nil {
@@ -524,14 +564,11 @@ func (m *Module) watchRollout(c telebot.Context, kind, name, namespace, clusterN
 			}
 
 			user := middleware.GetUser(c)
-			username := "unknown"
-			if user != nil {
-				username = user.Username
-			}
+			uname := displayName(user)
 
 			if ready >= target {
-				text := fmt.Sprintf("✅ *Scaled %s %s to %d replicas*\n\n✅ Rollout complete: %d/%d ready\n\nTriggered by: @%s",
-					kindLabel, name, target, ready, target, username)
+				text := fmt.Sprintf("✅ *Scaled %s %s to %d replicas*\n\n✅ Rollout complete: %d/%d ready\n\nTriggered by: %s",
+					kindLabel, name, target, ready, target, uname)
 
 				if c.Callback() != nil {
 					_, _ = c.Bot().Edit(c.Callback().Message, text, telebot.ModeMarkdown)
@@ -539,8 +576,8 @@ func (m *Module) watchRollout(c telebot.Context, kind, name, namespace, clusterN
 				return
 			}
 
-			text := fmt.Sprintf("✅ *Scaled %s %s to %d replicas*\n\n🔄 Progress: %d/%d ready...\n\nTriggered by: @%s",
-				kindLabel, name, target, ready, target, username)
+			text := fmt.Sprintf("✅ *Scaled %s %s to %d replicas*\n\n🔄 Progress: %d/%d ready...\n\nTriggered by: %s",
+				kindLabel, name, target, ready, target, uname)
 
 			if c.Callback() != nil {
 				_, _ = c.Bot().Edit(c.Callback().Message, text, telebot.ModeMarkdown)
